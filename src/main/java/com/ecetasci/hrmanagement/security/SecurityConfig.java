@@ -35,8 +35,8 @@ public class SecurityConfig {
 		http.csrf(csrf -> csrf.disable())
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(
-								"/v1/api/dev/user/login",
-								"/v1/api/dev/user/register"
+								"api/user/login",
+								"api/user/register"
 						).permitAll()
 						.requestMatchers(
 								"/swagger-ui.html",
@@ -45,17 +45,18 @@ public class SecurityConfig {
 								"/swagger-resources/**",
 								"/webjars/**"
 						).permitAll()
-						.requestMatchers("/v1/api/dev/admin/user/get-all-users").hasRole("SITE_ADMIN")
+
 						.requestMatchers("api/user/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 						.requestMatchers("api/expenses/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 						.requestMatchers("api/employee/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 						.requestMatchers("api/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 						.requestMatchers("api/admin/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-
-						.requestMatchers("/public/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+						//.requestMatchers("/v1/api/dev/admin/user/get-all-users").hasRole("SITE_ADMIN")
 						.requestMatchers("api/dashboard/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 						.requestMatchers("api/company/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 						.requestMatchers("api/manager/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+						.requestMatchers("api/reviews/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+						.requestMatchers("api/reviews/public", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 						.anyRequest().authenticated()
 				)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

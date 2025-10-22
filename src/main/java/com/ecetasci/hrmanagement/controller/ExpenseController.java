@@ -91,4 +91,12 @@ public ResponseEntity<ExpenseDocumentResponseDto> uploadDocument(
         return ResponseEntity.ok(expenseService.updateRejectedExpense(id, dto));
     }
 
+    @PutMapping("/expenses/{id}/reject")
+    public ResponseEntity<String> rejectExpense(@PathVariable Long id) {
+        expenseService.rejectExpense(id);
+        return ResponseEntity.ok("Expense rejected successfully");
+    }
+
+
+
 }

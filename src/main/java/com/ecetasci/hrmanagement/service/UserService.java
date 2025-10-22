@@ -85,7 +85,7 @@ public class UserService {
     }
 
 
-    private String generateEmployeeNumber() {
+    public String generateEmployeeNumber() {
         // Prefix: tek büyük harf, ardından 6 haneli sıfır dolgulu sayı => A123456
         for (int attempt = 0; attempt < 10; attempt++) {
             char prefix = (char) ('A' + ThreadLocalRandom.current().nextInt(26));

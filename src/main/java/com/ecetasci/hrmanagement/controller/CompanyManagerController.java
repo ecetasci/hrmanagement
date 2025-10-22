@@ -17,10 +17,7 @@ import com.ecetasci.hrmanagement.entity.LeaveRequest;
 import com.ecetasci.hrmanagement.entity.LeaveType;
 import com.ecetasci.hrmanagement.repository.EmployeeRepository;
 import com.ecetasci.hrmanagement.repository.LeaveTypeRepository;
-import com.ecetasci.hrmanagement.service.AssetService;
-import com.ecetasci.hrmanagement.service.CompanyManagerService;
-import com.ecetasci.hrmanagement.service.ExpenseService;
-import com.ecetasci.hrmanagement.service.LeaveService;
+import com.ecetasci.hrmanagement.service.*;
 import com.ecetasci.hrmanagement.mapper.LeaveMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +41,7 @@ public class CompanyManagerController {
     private final AssetService assetService;
     private final ExpenseService expenseService;
     private final LeaveMapper leaveMapper; // added for mapping
+
 
 
     //Personel kayıt//

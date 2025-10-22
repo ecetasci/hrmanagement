@@ -27,6 +27,8 @@ public class ShiftService {
     private final EmployeeShiftRepository employeeShiftRepository; // eklendi
 
 
+
+
     public List<ShiftResponseDto> getShiftsByCompany(Long companyId) {
         List<Shift> shifts = shiftRepository.findByCompanyId(companyId);
         return shifts.stream()

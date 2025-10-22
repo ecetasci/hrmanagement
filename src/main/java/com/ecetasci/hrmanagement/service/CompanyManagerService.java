@@ -22,6 +22,8 @@ public class CompanyManagerService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final CompanyService companyService;
+    private final UserService userService;
 
     // Personel ekleme
     public Employee createEmployee(RegisterEmployeeRequestDto dto) {
@@ -30,6 +32,7 @@ public class CompanyManagerService {
         user.setName(dto.name());
         user.setPassword(passwordEncoder.encode(dto.password()));
         user.setRole(Role.EMPLOYEE);
+        user.setEmail(dto.email());
         //user.setActive(false);
 
         User savedUser = userRepository.save(user);
@@ -40,8 +43,11 @@ public class CompanyManagerService {
         employee.setPassword(savedUser.getPassword()); // aynı şifre
         employee.setRole(Role.EMPLOYEE);
         //employee.setActive(false);
-        employee.setCompany(dto.company());
-        employee.setEmployeeNumber(UUID.randomUUID().toString());
+        employee.setCompany(companyService.findById(dto.companyId()));
+        employee.setEmployeeNumber(userService.generateEmployeeNumber());
+        employee.setDepartment(dto.department());
+        employee.setPosition(dto.position());
+        employee.setEmail(dto.email());
         employee.setUser(savedUser); // ilişkilendirme
 
         return employeeRepository.save(employee);

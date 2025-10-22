@@ -80,6 +80,16 @@ public class ExpenseService {
         expenseRepository.save(expense);
     }
 
+    @Transactional
+    public void rejectExpense(Long expenseId) {
+        Expense expense = expenseRepository.findById(expenseId)
+                .orElseThrow(() -> new RuntimeException("Expense not found"));
+
+        expense.setStatus(ExpenseStatus.REJECTED);
+        expense.setWillAdd(false);
+        expenseRepository.save(expense);
+    }
+
     public ExpenseResponseDto updateRejectedExpense(Long expenseId, ExpenseCreateRequest dto) {
         Expense expense = expenseRepository.findById(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found"));

@@ -20,14 +20,14 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping
+@RequestMapping("api/reviews")
 @RequiredArgsConstructor
 public class CompanyReviewController {
 
     private final CompanyReviewService companyReviewService;
     private final UserService userService;
 
-    @GetMapping("/public/reviews")
+    @GetMapping("/public")
     public ResponseEntity<BaseResponse<List<CompanyReviewResponse>>> listReview(Long companyId) {
         List<CompanyReviewResponse> all = companyReviewService.findAll();
 
