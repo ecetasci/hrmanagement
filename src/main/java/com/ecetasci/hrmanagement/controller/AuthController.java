@@ -22,10 +22,21 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 import static com.ecetasci.hrmanagement.enums.Role.COMPANY_ADMIN;
 
+/**
+ * AuthController — kimlik ve yetkilendirme işlemleri.
+ *
+ * Bu controller aşağıdaki işlevleri sağlar:
+ * - Şirket yönetici kaydı
+ * - E-posta doğrulama (verify-email)
+ * - Giriş (login)
+ * - Parola sıfırlama isteği ve sıfırlama (forgot-password, reset-password)
+ * - Logout
+ *
+ * Not: Metot parametreleri DTO olarak alınır; dönen cevaplar proje genelindeki `BaseResponse` sarmalayıcısı ile dönülür.
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("api/auth")
@@ -33,31 +44,37 @@ public class AuthController {
     private final UserService userService;
     private final CompanyService companyService;
     private final EmployeeService employeeService;
-    private final SiteAdminService siteAdminService;
-    private final CompanyManagerService companyManagerService;
     private final AuthenticationManager authenticationManager;
     private final JwtManager jwtManager;
     private final PasswordEncoder passwordEncoder;
 
 
-    //manager da bir employee
+    /**
+     * Şirket yönetici kaydı yapar.
+     *
+     * @param dto Kayıt için gerekli alanları taşıyan DTO (isim, email, password, companyId vb.)
+     * @return Kayıt sonucu ve oluşturulan User nesnesi içeren BaseResponse
+     */
     @PostMapping("/company-manager-register")
     @Transactional
     public ResponseEntity<BaseResponse<User>> register(@RequestBody @Valid RegisterCompanyManagerRequestDto dto) {
 
         if ((userService.findUserByEmail(dto.email())).isPresent()) {
-            throw new RuntimeException("Bu kullanıcı zaten kayıtlıdır");
+            return ResponseEntity.badRequest().body(BaseResponse.<User>builder()
+                    .success(false)
+                    .code(400)
+                    .message("Bu kullanıcı zaten kayıtlıdır")
+                    .build());
         }
             User user = new User();
             user.setName(dto.name());
             user.setEmail(dto.email());
             user.setPassword(passwordEncoder.encode(dto.password())); // şifre encode
             user.setRole(COMPANY_ADMIN);
-            user.setPasswordResetToken(jwtManager.generateToken(dto.name()));
+            user.setPasswordResetToken(jwtManager.generateToken(dto.email()));
             user.setCreatedAt(LocalDateTime.now());
-            user.setEmailVerificationToken(jwtManager.generateToken(dto.name()));
+            user.setEmailVerificationToken(jwtManager.generateToken(dto.email()));
             user.setUserStatus(UserStatus.PENDING_EMAIL_VERIFICATION);
-
 
             User saved = userService.save(user);
 
@@ -69,8 +86,8 @@ public class AuthController {
             employee.setRole(saved.getRole());
             employee.setCompany(companyService.findById(dto.companyId()));
             employee.setCreatedAt(saved.getCreatedAt());
-            //TO DO number generate için bir methıd yazarım
-            employee.setEmployeeNumber("testnumber");
+
+            employee.setEmployeeNumber(employeeService.generateEmployeeNumber());
 
             employeeService.save(employee);
 
@@ -83,6 +100,12 @@ public class AuthController {
         //to do response dto yaz  parolayı dönmesin
     }
 
+    /**
+     * E-posta doğrulama token'ını alır ve kullanıcıyı aktif hale getirir.
+     *
+     * @param token E-posta doğrulama amacı ile oluşturulmuş JWT token
+     * @return Başarı/başarısızlık bilgisini içeren BaseResponse
+     */
     @PostMapping("/verify-email")
     public ResponseEntity<BaseResponse<String>> verifyEmail(@RequestParam String token) {
         try {
@@ -125,21 +148,36 @@ public class AuthController {
         }
     }
 
-    //logout olmadan tekrar çalıştılıbailiyor nasıl düzeltiriz
-    @PostMapping("/manager-login")
+    /**
+     * Kullanıcı girişi yapar.
+     *
+     * @param dto Login bilgilerini içeren DTO (email, password)
+     * @return Giriş başarılıysa JWT token ve kullanıcı bilgilerini içeren BaseResponse
+     */
+    @PostMapping("/login")
     public ResponseEntity<BaseResponse<LoginResponseDto>> login(@RequestBody @Valid LoginRequestDto dto) {
-        User user = userService.findUserByEmail(dto.email()).orElseThrow();
-        if (!(user.getUserStatus().equals(UserStatus.ACTIVE))) {
-            throw new RuntimeException("Email not verified");
+        var optUser = userService.findUserByEmail(dto.email());
+        if (optUser.isEmpty()) {
+            return ResponseEntity.status(404).body(BaseResponse.<LoginResponseDto>builder()
+                    .success(false)
+                    .code(404)
+                    .message("User not found")
+                    .build());
+        }
+        User user = optUser.get();
+        if (!UserStatus.ACTIVE.equals(user.getUserStatus())) {
+            return ResponseEntity.status(403).body(BaseResponse.<LoginResponseDto>builder()
+                    .success(false)
+                    .code(403)
+                    .message("Email not verified")
+                    .build());
         }
 
         try {
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(dto.name(),
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(dto.email(),
                     dto.password()));
-
-           String token = jwtManager.generateToken(dto.name());
-
-            LoginResponseDto loginResponseDto=new LoginResponseDto(token,user.getName(), user.getEmail(), user.getRole());
+           String token = jwtManager.generateToken(dto.email());
+           LoginResponseDto loginResponseDto=new LoginResponseDto(token,user.getName(), user.getEmail(), user.getRole());
 
             return ResponseEntity.ok().body(BaseResponse.<LoginResponseDto>builder()
                     .success(true)
@@ -158,11 +196,12 @@ public class AuthController {
         }
     }
 
-
-
-
-
-
+    /**
+     * Parola sıfırlama linki oluşturur ve e-posta gönderir.
+     *
+     * @param email Parola sıfırlama isteği yapılan kullanıcının email adresi
+     * @return İşlem sonucu mesajı içeren BaseResponse
+     */
     @PostMapping("/forgot-password")
     public ResponseEntity<BaseResponse<String>> forgotPassword(@RequestParam String email) {
         userService.generateResetToken(email);
@@ -174,7 +213,12 @@ public class AuthController {
                 .build());
     }
 
-
+    /**
+     * Yeni parolayı set eder. Gelen DTO içinde token ve yeni parola bulunur.
+     *
+     * @param dto ResetPasswordRequestDto: token ve yeni parolayı içerir
+     * @return İşlem sonucu mesajı içeren BaseResponse
+     */
     @PostMapping("/reset-password")
     public ResponseEntity<BaseResponse<String>> resetPassword(@RequestBody @Valid ResetPasswordRequestDto dto) {
         try {
@@ -194,8 +238,12 @@ public class AuthController {
         }
     }
 
-
-    //● POST /api/auth/logout - Çıkış yapma //login sırasında tutulan tokenla
+    /**
+     * Oturumu kapatır (token geçersizleştirme).
+     *
+     * @param token İptal edilmek istenen JWT token
+     * @return İşlem sonucu mesajı içeren BaseResponse
+     */
     @PostMapping("/logout")
     public ResponseEntity<BaseResponse<String>> logout(@RequestBody String token) {
 
@@ -215,7 +263,4 @@ public class AuthController {
                     .build());
         }
     }
-
-
-
 }

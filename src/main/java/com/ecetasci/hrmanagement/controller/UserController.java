@@ -20,12 +20,24 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-
+/**
+ * UserController — genel kullanıcı yönetimi ve site-admin işlemleri.
+ *
+ * Sağladığı işlevler:
+ * - Kullanıcı listesini sayfalandırma
+ * - Kullanıcı arama (username)
+ * - ID ile kullanıcı bulma
+ * - Site-admin için kullanıcı kayıt (register)
+ * - Kullanıcı profil güncelleme
+ * - E-posta doğrulama (verify)
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("api/user")
@@ -34,24 +46,42 @@ public class UserController {
     private final EmailService emailService;
 
 
+    /**
+     * Tüm kullanıcıları sayfalandırılmış şekilde döner.
+     *
+     * @param pageable Spring Pageable nesnesi (page, size, sort)
+     * @return Page içinde UserResponse DTO'ları sarılı BaseResponse
+     */
     @GetMapping("/find-all")
-    public ResponseEntity<BaseResponse<List<UserResponse>>> findAll() {
+    public ResponseEntity<BaseResponse<Page<UserResponse>>> findAll(Pageable pageable) {
 
-        return ResponseEntity.ok(BaseResponse.<List<UserResponse>>builder()
+        return ResponseEntity.ok(BaseResponse.<Page<UserResponse>>builder()
                 .success(true)
                 .code(200)
                 .message("user-list")
-                .data(userService.findAll()).build());
+                .data(userService.findAll(pageable)).build());
 
     }
 
 
+    /**
+     * Kullanıcı adlarına göre arama yapar (çoklu sonuç dönebilir).
+     *
+     * @param username Aranacak kullanıcı adı
+     * @return Eşleşen User listesi
+     */
     @GetMapping("/find-by-username")
     public List<User> findAllByUsername(@RequestParam String username) {
         return userService.findAllByUsername(username);
     }
 
 
+    /**
+     * ID ile kullanıcı bilgisi döner.
+     *
+     * @param id Kullanıcı ID'si
+     * @return Bulunan User veya 404
+     */
     @GetMapping("/find-by-id" + "/{id}")
     public ResponseEntity<User> findById(@PathVariable Long id) {
         if (id == null || id < 0) {
@@ -61,7 +91,12 @@ public class UserController {
         return user.isPresent() ? ResponseEntity.ok(user.get()) : ResponseEntity.notFound().build();
     }
 
-    //SİTE ADMİN
+    /**
+     * Site admin tarafından yeni kullanıcı kaydı oluşturur.
+     *
+     * @param dto RegisterRequestDto
+     * @return Kayıt sonucu ve RegisterResponseDto içeren BaseResponse
+     */
     @PostMapping("/register")
     public ResponseEntity<BaseResponse<RegisterResponseDto>> register(@RequestBody @Valid RegisterRequestDto dto) {
 
@@ -79,6 +114,12 @@ public class UserController {
     }
 
 
+    /**
+     * Kullanıcı profilini günceller.
+     *
+     * @param dto UpdateUserRequestDto
+     * @return Güncellenmiş User wrapped ile BaseResponse
+     */
     @PutMapping("/update-user-profile")
     public ResponseEntity<BaseResponse<User>> updateUserProfile(
             @RequestBody @Valid UpdateUserRequestDto dto) {
@@ -94,6 +135,12 @@ public class UserController {
         );
     }
 
+    /**
+     * E-posta doğrulama endpoint'i (token ile çağrılır).
+     *
+     * @param token Doğrulama tokenı
+     * @return Basit mesaj (ok veya hata)
+     */
     @GetMapping("/verify")
     public ResponseEntity<String> verify(@RequestParam String token) {
         userService.verifyEmail(token);

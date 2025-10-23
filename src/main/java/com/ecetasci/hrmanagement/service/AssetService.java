@@ -13,6 +13,7 @@ import com.ecetasci.hrmanagement.repository.AssetRepository;
 import com.ecetasci.hrmanagement.repository.CompanyRepository;
 import com.ecetasci.hrmanagement.repository.EmployeeAssetRepository;
 import com.ecetasci.hrmanagement.repository.EmployeeRepository;
+import com.ecetasci.hrmanagement.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +38,7 @@ public class AssetService {
     // Zimmet oluşturma (serial number unique kontrolü)
     public AssetResponseDto createAsset(AssetRequestDto dto) {
         if (assetRepository.existsBySerialNumber(dto.getSerialNumber())) {
-            throw new RuntimeException("Serial number already exists!");
+            throw new IllegalArgumentException("Serial number already exists!");
         }
         Asset asset = new Asset();
         asset.setName(dto.getName());
@@ -47,7 +48,7 @@ public class AssetService {
         asset.setValue(dto.getValue());
         asset.setType(dto.getType());
         asset.setCompany(companyRepository.findById(dto.getCompanyId())
-                .orElseThrow(() -> new RuntimeException("Company not found")));
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found")));
         Asset saved = assetRepository.save(asset);
         return toAssetDto(saved);
     }
@@ -55,7 +56,7 @@ public class AssetService {
     // Zimmet güncelleme//tekrar bak
     public AssetResponseDto updateAsset(Long id, AssetRequestDto dto) {
         Asset asset = assetRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Asset not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Asset not found"));
         asset.setName(dto.getName());
         asset.setBrand(dto.getBrand());
         asset.setModel(dto.getModel());
@@ -63,19 +64,19 @@ public class AssetService {
         asset.setValue(dto.getValue());
         asset.setType(dto.getType());
         asset.setCompany(companyRepository.findById(dto.getCompanyId())
-                .orElseThrow(() -> new RuntimeException("Company not found")));
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found")));
         return toAssetDto(assetRepository.save(asset));
     }
 
     // Zimmet silme
     public void deleteAsset(Long id) {
         Asset asset = assetRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Asset not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Asset not found"));
         // Aktif zimmet varsa silinemez
         boolean hasActive = employeeAssetRepository.existsByAssetAndStatusIn(
                 asset, List.of(EmployeeAssetStatus.ASSIGNED, EmployeeAssetStatus.CONFIRMED));
         if (hasActive) {
-            throw new RuntimeException("Asset is currently assigned and cannot be deleted!");
+            throw new IllegalStateException("Asset is currently assigned and cannot be deleted!");
         }
         assetRepository.delete(asset);
     }
@@ -83,18 +84,18 @@ public class AssetService {
     // Zimmet atama
     public EmployeeAssetResponseDto assignAssetToEmployee(Long employeeId, AssignAssetRequestDto dto) {
         Asset asset = assetRepository.findById(dto.getAssetId())
-                .orElseThrow(() -> new RuntimeException("Asset not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Asset not found"));
         Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
         // Aynı zimmet başka birine atanmış mı?
         boolean alreadyAssigned = employeeAssetRepository.existsByAssetAndStatusIn(
                 asset, List.of(EmployeeAssetStatus.ASSIGNED, EmployeeAssetStatus.CONFIRMED));
         if (alreadyAssigned) {
-            throw new RuntimeException("Asset is already assigned to another employee!");
+            throw new IllegalStateException("Asset is already assigned to another employee!");
         }
         // Şirket eşleştirmesi (opsiyonel kural)
         if (!asset.getCompany().equals(employee.getCompany())) {
-            throw new RuntimeException("Asset and employee belong to different companies!");
+            throw new IllegalStateException("Asset and employee belong to different companies!");
         }
 
         EmployeeAsset ea = new EmployeeAsset();
@@ -116,9 +117,9 @@ public class AssetService {
     // Zimmeti onayla
     public EmployeeAssetResponseDto confirmEmployeeAsset(Long assignmentId) {
         EmployeeAsset ea = employeeAssetRepository.findById(assignmentId)
-                .orElseThrow(() -> new RuntimeException("Assignment not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
         if (ea.getStatus() != EmployeeAssetStatus.ASSIGNED) {
-            throw new RuntimeException("Only ASSIGNED assets can be confirmed!");
+            throw new IllegalStateException("Only ASSIGNED assets can be confirmed!");
         }
         ea.setStatus(EmployeeAssetStatus.CONFIRMED);
         ea.setEmployeeNote(null);
@@ -128,9 +129,9 @@ public class AssetService {
     // Zimmeti reddet (not zorunlu)
     public EmployeeAssetResponseDto rejectEmployeeAsset(Long assignmentId, RejectAssetRequestDto dto) {
         EmployeeAsset ea = employeeAssetRepository.findById(assignmentId)
-                .orElseThrow(() -> new RuntimeException("Assignment not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
         if (ea.getStatus() != EmployeeAssetStatus.ASSIGNED) {
-            throw new RuntimeException("Only ASSIGNED assets can be rejected!");
+            throw new IllegalStateException("Only ASSIGNED assets can be rejected!");
         }
         ea.setStatus(EmployeeAssetStatus.REJECTED);
         ea.setEmployeeNote(dto.getEmployeeNote());

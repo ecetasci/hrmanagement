@@ -32,32 +32,52 @@ public class SecurityConfig {
 	}
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-		http.csrf(csrf -> csrf.disable())
+		http
+// enable CORS and disable CSRF since the API is stateless
+				.cors().and()
+				.csrf(csrf -> csrf.disable())
+// configure URL based authorization
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers(
-								"api/user/login",
-								"api/user/register"
-						).permitAll()
-						.requestMatchers(
-								"/swagger-ui.html",
-								"/swagger-ui/**",
-								"/v3/api-docs/**",
-								"/swagger-resources/**",
-								"/webjars/**"
-						).permitAll()
-
-						.requestMatchers("api/user/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-						.requestMatchers("api/expenses/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-						.requestMatchers("api/employee/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-						.requestMatchers("api/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-						.requestMatchers("api/admin/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-						//.requestMatchers("/v1/api/dev/admin/user/get-all-users").hasRole("SITE_ADMIN")
-						.requestMatchers("api/dashboard/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-						.requestMatchers("api/company/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-						.requestMatchers("api/manager/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-						.requestMatchers("api/reviews/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-						.requestMatchers("api/reviews/public", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-						.anyRequest().authenticated()
+// public endpoints for authentication and user registration/verification
+								.requestMatchers(
+										"/api/auth/**",
+										"/api/user/login",
+										"/api/user/register",
+										"/api/user/forgot-password",
+										"/api/user/verify"
+								).permitAll()
+// documentation endpoints should be publicly accessible
+								.requestMatchers(
+										"/swagger-ui.html",
+										"/swagger-ui/**",
+										"/v3/api-docs/**",
+										"/swagger-resources/**",
+										"/webjars/**"
+								).permitAll()
+// publicly viewable company reviews
+								.requestMatchers(org.springframework.http.HttpMethod.GET, "/api/reviews/public").permitAll()
+// site admin endpoints
+								.requestMatchers(
+										"/api/admin/**",
+										"/api/dashboard/admin/**",
+										"/api/reviews/company/**"
+								).hasRole("SITE_ADMIN")
+// company admin (manager) endpoints
+								.requestMatchers(
+										"/api/manager/**",
+										"/api/company/**",
+										"/api/dashboard/company/**",
+										"/api/expenses/company/**",
+										"/api/company/shifts/**"
+								).hasRole("COMPANY_ADMIN")
+// employee endpoints
+								.requestMatchers(
+										"/api/employee/**",
+										"/api/dashboard/employee/**",
+										"/api/expenses/employee/**"
+								).hasRole("EMPLOYEE")
+// any other request must be authenticated
+								.anyRequest().authenticated()
 				)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.addFilterBefore(jwtAuhenticationFilter, UsernamePasswordAuthenticationFilter.class);

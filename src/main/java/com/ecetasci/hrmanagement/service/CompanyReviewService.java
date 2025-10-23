@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+import com.ecetasci.hrmanagement.exceptions.ResourceNotFoundException;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +44,8 @@ public class CompanyReviewService {
 
     //dönüşü dto yaparım
     public CompanyReviewResponse createCompanyReview(Long id, String title, String content, Integer rating) {
-        Company company = companyRepository.findById(id).orElseThrow();
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found with id: " + id));
 
         if (!isPublished(id)) {
             CompanyReview companyReview = new CompanyReview();
@@ -56,9 +58,8 @@ public class CompanyReviewService {
 
             return new CompanyReviewResponse(saved.getCompany().getCompanyName(),
                     saved.getTitle(), saved.getContent(), saved.getRating());
-        } else {
-            throw new RuntimeException("Daha önce yorum yapıldığından yorum eklenemez");
         }
+        throw new IllegalStateException("Daha önce yorum yapıldığından yorum eklenemez");
     }
 
     @Transactional
@@ -67,7 +68,8 @@ public class CompanyReviewService {
     }
 
     public CompanyReview findByCompanyId(Long companyId) {
-        return companyReviewRepository.findCompanyReviewByCompany_Id(companyId).orElseThrow();
+        return companyReviewRepository.findCompanyReviewByCompany_Id(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("CompanyReview not found for company id: " + companyId));
     }
 
     public CompanyReview save(CompanyReview companyReview) {
@@ -76,9 +78,10 @@ public class CompanyReviewService {
     }
 
     public ReviewDetailResponse findById(Long reviewId) {
-        CompanyReview companyReview = companyReviewRepository.findById(reviewId).orElseThrow();
-        ReviewDetailResponse reviewDetailResponse = new ReviewDetailResponse( companyReview.getCompany().getCompanyName(),
-                companyReview.getTitle(),companyReview.getContent(),companyReview.getRating());
+        CompanyReview companyReview = companyReviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("CompanyReview not found with id: " + reviewId));
+        ReviewDetailResponse reviewDetailResponse = new ReviewDetailResponse(companyReview.getCompany().getCompanyName(),
+                companyReview.getTitle(), companyReview.getContent(), companyReview.getRating());
 
         return reviewDetailResponse;
 

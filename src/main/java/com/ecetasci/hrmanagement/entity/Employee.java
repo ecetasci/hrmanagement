@@ -1,7 +1,7 @@
 package com.ecetasci.hrmanagement.entity;
 
 import com.ecetasci.hrmanagement.enums.Role;
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -49,14 +49,15 @@ public class Employee extends BaseEntity{
     private String phoneNumber;
 
     @Column(length = 255)
+    @JsonManagedReference("company-subscriptions")
     private String address;
 
     @Column(length = 150)
+    @JsonManagedReference("company-employees")
     private String emergencyContact;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")
-    @JsonBackReference("company-employees")
     private Company company;
 
     @Enumerated(EnumType.STRING)

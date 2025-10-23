@@ -30,6 +30,15 @@ import java.util.List;
 
 
 
+/**
+ * CompanyManagerController — şirket içi yönetici işlemleri (personel, izin, zimmet, gider vb.).
+ *
+ * Sağladığı başlıca işlevler:
+ * - Personel kayıt ve listeleme
+ * - İzin türleri ve izin talepleri yönetimi
+ * - Zimmet (asset) CRUD ve atama işlemleri
+ * - Gider (expense) listeleme ve yönetimi
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("api/manager")
@@ -45,6 +54,12 @@ public class CompanyManagerController {
 
 
     //Personel kayıt//
+    /**
+     * Yeni personel kaydı oluşturur.
+     *
+     * @param dto Kayıt için gerekli alanları içeren DTO
+     * @return Oluşturulan personel bilgilerini içeren BaseResponse
+     */
     @PostMapping("/employee-register")
     public ResponseEntity<BaseResponse<EmployeeResponseDto>> register(@RequestBody @Valid RegisterEmployeeRequestDto dto) {
         try {
@@ -74,7 +89,11 @@ public class CompanyManagerController {
         }
     }
 
-    // Şirket izin türleri listele
+    /**
+     * Şirkete ait izin türlerini döner.
+     *
+     * @return İzin türleri DTO listesi
+     */
     @GetMapping("/leave-types")
     public ResponseEntity<List<LeaveTypeResponseDto>> getAllLeaveTypes() {
         List<LeaveTypeResponseDto> dtos = leaveTypeRepository.findAll().stream()
@@ -91,7 +110,11 @@ public class CompanyManagerController {
     }
 
 
-    // Tüm izin taleplerini listele
+    /**
+     * Tüm izin taleplerini getirir.
+     *
+     * @return İzin talepleri DTO listesi
+     */
     @GetMapping("/leaves")
     public ResponseEntity<List<LeaveResponseDto>> getAllLeaves() {
         List<LeaveRequest> allLeaves = employeeRepository.findAll().stream()
@@ -105,7 +128,14 @@ public class CompanyManagerController {
         return ResponseEntity.ok(dtos);
     }
 
-    // İzin onayla//leave response dönelim
+    /**
+     * Bir izin talebini onaylar.
+     *
+     * @param employeeNumber Onaylayan yönetici/çalışanın numarası
+     * @param leaveStartDate İzin başlangıç tarihi
+     * @param managerEmployeeNumber Yönetici numarası
+     * @return Onay sonucu mesajı
+     */
     @PutMapping("/leaves/{id}/approve")
     public ResponseEntity<String> approveLeave(@RequestParam String employeeNumber,
                                                @RequestParam LocalDate leaveStartDate,
@@ -117,7 +147,14 @@ public class CompanyManagerController {
         return ResponseEntity.ok("Leave approved");
     }
 
-    // İzin reddet
+    /**
+     * Bir izin talebini reddeder.
+     *
+     * @param employeeNumber Çalışanın numarası
+     * @param managerNumber Yönetici numarası
+     * @param managerNote Yönetici notu
+     * @return Red sonucu mesajı
+     */
     @PutMapping("/leaves/{id}/reject")
     public ResponseEntity<String> rejectLeave(@RequestParam String employeeNumber,
                                               @RequestParam String managerNumber,
@@ -129,7 +166,11 @@ public class CompanyManagerController {
     }
 
 
-    // Tüm zimmetleri listele
+    /**
+     * Tüm zimmetleri listeler.
+     *
+     * @return Asset DTO listesi
+     */
     @GetMapping("/assets")
     public ResponseEntity<BaseResponse<List<AssetResponseDto>>> getAllAssets() {
         List<AssetResponseDto> assets = assetService.getAllAssets();
@@ -141,7 +182,12 @@ public class CompanyManagerController {
                 .build());
     }
 
-    // Yeni zimmet tanımla
+    /**
+     * Yeni zimmet oluşturur.
+     *
+     * @param dto Zimmet oluşturma DTO
+     * @return Oluşturulan zimmet DTO
+     */
     @PostMapping("/assets")
     public ResponseEntity<BaseResponse<AssetResponseDto>> createAsset(@RequestBody @Valid AssetRequestDto dto) {
         AssetResponseDto asset = assetService.createAsset(dto);
@@ -153,7 +199,13 @@ public class CompanyManagerController {
                 .build());
     }
 
-    // Zimmet güncelle
+    /**
+     * Zimmet günceller.
+     *
+     * @param id Zimmet ID
+     * @param dto Güncel veri
+     * @return Güncellenmiş zimmet DTO
+     */
     @PutMapping("/assets/{id}")
     public ResponseEntity<BaseResponse<AssetResponseDto>> updateAsset(@PathVariable Long id,
                                                                       @RequestBody @Valid AssetRequestDto dto) {
@@ -166,7 +218,12 @@ public class CompanyManagerController {
                 .build());
     }
 
-    // Zimmet sil
+    /**
+     * Zimmet siler.
+     *
+     * @param id Zimmet ID
+     * @return Başarı mesajı
+     */
     @DeleteMapping("/assets/{id}")
     public ResponseEntity<BaseResponse<String>> deleteAsset(@PathVariable Long id) {
         assetService.deleteAsset(id);
@@ -178,7 +235,13 @@ public class CompanyManagerController {
                 .build());
     }
 
-    // Personel'e zimmet atama
+    /**
+     * Personel'e zimmet atar.
+     *
+     * @param employeeId Atanacak personelin ID'si
+     * @param dto Atama bilgileri
+     * @return Atamaya dair DTO
+     */
     @PostMapping("/employees/{employeeId}/assets")
     public ResponseEntity<BaseResponse<EmployeeAssetResponseDto>> assignAsset(
             @PathVariable Long employeeId,
@@ -193,6 +256,12 @@ public class CompanyManagerController {
                 .build());
     }
 
+    /**
+     * Çalışanın gider (expense) kayıtlarını getirir.
+     *
+     * @param employeeId Çalışan ID'si
+     * @return Gider DTO listesi
+     */
     @GetMapping("/expenses")
     public ResponseEntity<BaseResponse<List<ExpenseResponseDto>>> getExpenses(
             @RequestParam Long employeeId) {

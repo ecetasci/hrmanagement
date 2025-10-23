@@ -17,7 +17,15 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-
+/**
+ * EmployeeController — çalışanlara ait işlemler (izin, zimmet, gider vb.).
+ *
+ * Sağladığı işlevler:
+ * - İzin talebi oluşturma
+ * - Çalışanın kendi zimmetlerini listeleme
+ * - Zimmet onay/reddetme
+ * - Çalışanın giderlerini listeleme
+ */
 @RestController
 @RequestMapping("/api/employee")
 @RequiredArgsConstructor
@@ -27,13 +35,24 @@ public class EmployeeController {
     private final LeaveMapper leaveMapper;
     private final ExpenseService expenseService;
 
-    // İzin talebi oluştur //mapper çalışcak mı dene
+    /**
+     * Yeni bir izin talebi oluşturur.
+     *
+     * @param dto LeaveRequestDto
+     * @return Oluşturulan izin talebi DTO
+     */
     @PostMapping("/leave-request")
     public ResponseEntity<LeaveResponseDto> createLeave(@RequestBody @Valid LeaveRequestDto dto) {
         var request = leaveService.leaveRequestCreate(dto);
         return ResponseEntity.ok(leaveMapper.toDto(request));
     }
-    // Çalışanın kendi zimmetlerini getir
+
+    /**
+     * Çalışanın zimmetlerini listeler.
+     *
+     * @param employeeId Çalışan ID'si
+     * @return Zimmet atamaları listesi wrapped ile BaseResponse
+     */
     @GetMapping("/list-assets")
     public ResponseEntity<BaseResponse<List<EmployeeAssetResponseDto>>> getEmployeeAssets(
             @RequestParam Long employeeId) {
@@ -46,7 +65,12 @@ public class EmployeeController {
                 .build());
     }
 
-    // Zimmeti onayla
+    /**
+     * Zimmeti onaylar.
+     *
+     * @param assignmentId Zimmet atama ID'si
+     * @return Güncellenmiş atama DTO wrapped ile BaseResponse
+     */
     @PutMapping("/assets/{assignmentId}/confirm")
     public ResponseEntity<BaseResponse<EmployeeAssetResponseDto>> confirmAsset(
             @PathVariable Long assignmentId) {
@@ -59,7 +83,13 @@ public class EmployeeController {
                 .build());
     }
 
-    // Zimmeti reddet (employeeNote zorunlu)
+    /**
+     * Zimmeti reddeder. `employeeNote` zorunludur.
+     *
+     * @param assignmentId Zimmet atama ID'si
+     * @param dto Reddetme notunu içeren DTO
+     * @return Güncellenmiş atama DTO wrapped ile BaseResponse
+     */
     @PutMapping("/assets/{assignmentId}/reject")
     public ResponseEntity<BaseResponse<EmployeeAssetResponseDto>> rejectAsset(
             @PathVariable Long assignmentId,
@@ -73,6 +103,12 @@ public class EmployeeController {
                 .build());
     }
 
+    /**
+     * Çalışanın giderlerini getirir.
+     *
+     * @param employeeId Çalışan ID'si
+     * @return Gider DTO listesi wrapped ile BaseResponse
+     */
     @GetMapping("/expenses")
     public ResponseEntity<BaseResponse<List<ExpenseResponseDto>>> getExpenses(
             @RequestParam Long employeeId) {
@@ -81,7 +117,7 @@ public class EmployeeController {
                 .success(true)
                 .code(200)
                 .message("Employee expenses retrieved successfully")
-                        .data(employeeExpenses)
+                .data(employeeExpenses)
                 .build());
     }
 }

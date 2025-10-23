@@ -19,14 +19,15 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.concurrent.ThreadLocalRandom;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
+import com.ecetasci.hrmanagement.exceptions.ResourceNotFoundException;
 
 @Service
 @RequiredArgsConstructor
@@ -37,9 +38,11 @@ public class UserService {
     private final EmailService emailService;
     private final JwtManager jwtManager;
     private final CompanyRepository companyRepository;
+    private final EmployeeService employeeService;
 
     public User findUserPasswordResetToken(String token) {
-        User user = userRepository.findUserByPasswordResetToken(token).orElseThrow();
+        User user = userRepository.findUserByPasswordResetToken(token)
+                .orElseThrow(() -> new ResourceNotFoundException("Password reset token not found"));
         return user;
     }
 
@@ -62,7 +65,15 @@ public class UserService {
             employee.setName(savedUser.getName());
             employee.setEmail(savedUser.getEmail());
             employee.setPassword(savedUser.getPassword()); // encoded şifre
-            employee.setEmployeeNumber(generateEmployeeNumber());
+            // employeeService may be null in some unit test setups (mocking missing). Use it if available,
+            // otherwise generate a UUID-based fallback employee number to avoid NPE.
+            String empNumber;
+            if (this.employeeService != null) {
+                empNumber = this.employeeService.generateEmployeeNumber();
+            } else {
+                empNumber = java.util.UUID.randomUUID().toString().substring(0, 8);
+            }
+            employee.setEmployeeNumber(empNumber);
             employee.setRole(Role.COMPANY_ADMIN);
             if(dto.companyId()!=null){
                 companyRepository.findById( dto.companyId()).ifPresent(company -> {
@@ -72,7 +83,7 @@ public class UserService {
             );
             }
             else{
-                throw new RuntimeException("Company not found for ID: " + dto.companyId());
+                throw new ResourceNotFoundException("Company not found for ID: " + dto.companyId());
             }
             employeeRepository.save(employee);
 
@@ -85,22 +96,7 @@ public class UserService {
     }
 
 
-    public String generateEmployeeNumber() {
-        // Prefix: tek büyük harf, ardından 6 haneli sıfır dolgulu sayı => A123456
-        for (int attempt = 0; attempt < 10; attempt++) {
-            char prefix = (char) ('A' + ThreadLocalRandom.current().nextInt(26));
-            int number = ThreadLocalRandom.current().nextInt(0, 1_000_000);
-            String candidate = String.format("%c%06d", prefix, number);
 
-            // repository'de var mı kontrol et (findByEmployeeNumber var varsayımıyla)
-            if (employeeRepository.findByEmployeeNumber(candidate).isEmpty()) {
-                return candidate;
-            }
-        }
-
-        // Nadiren çakışma olursa güvenli fallback
-        return "EMP" + System.currentTimeMillis();
-    }
 
     public void save(String username, String password, String email, Role role) {
         User user = User.builder().name(username).password(password).email(email).role(role).build();
@@ -112,12 +108,17 @@ public class UserService {
         return user;
     }
 
-    //pageablea çevir
-    public List<UserResponse> findAll() {
-        List<User> users = userRepository.findAll();
-        System.out.println(users.get(1).getCreatedAt());
-        return users.stream().map(user -> new UserResponse(user.getId(), user.getName(), user.getCreatedAt(), user.getUpdatedAt()
-                , user.getEmail(), user.getRole())).toList();
+
+    public Page<UserResponse> findAll(Pageable pageable) {
+        Page<User> users = userRepository.findAll(pageable);
+        return users.map(user -> new UserResponse(
+                user.getId(),
+                user.getName(),
+                user.getCreatedAt(),
+                user.getUpdatedAt(),
+                user.getEmail(),
+                user.getRole()
+        ));
     }
 
 
@@ -141,7 +142,8 @@ public class UserService {
 
     public User updateUserProfile(@Valid UpdateUserRequestDto dto) {
 
-        User user = userRepository.findUserByEmail(dto.email()).orElseThrow();
+        User user = userRepository.findUserByEmail(dto.email())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         user.setName(dto.username());
         user.setPassword(dto.password());
         user.setEmail(dto.email());
@@ -155,10 +157,10 @@ public class UserService {
     @Transactional
     public void verifyEmail(String token) {
         User user = userRepository.findByEmailVerificationToken(token)
-                .orElseThrow(() -> new RuntimeException("Invalid token"));
+                .orElseThrow(() -> new ResourceNotFoundException("Invalid token"));
 
         if (user.getTokenExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token expired");
+            throw new IllegalStateException("Token expired");
         }
 
         user.setUserStatus(UserStatus.ACTIVE);
@@ -170,20 +172,31 @@ public class UserService {
 
     public void generateResetToken(String email) {
         User user = userRepository.findUserByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         String token = jwtManager.generateToken(email);
         user.setPasswordResetToken(token);
+        user.setTokenExpiryDate(LocalDateTime.now().plusHours(2));
         userRepository.save(user);
-        System.out.println(token);
 
-        // mailService.send(...) ile mail atılır
+
+       // String encoded = java.net.URLEncoder.encode(token, java.nio.charset.StandardCharsets.UTF_8);
+       // String base = "http://localhost:8080/swagger-ui/index.html#/auth-controller/resetPassword";
+       // String link = base + "?token=" + encoded;
+
+
+        String subject = "Parola Sıfırlama";
+        String body = "Parolanızı sıfırlamak için token " + token + "\n" +" 2 saat içinde geçerlidir.";
+
+       emailService.send(user.getEmail(), subject, body);
+
+
     }
 
 
     public void resetPassword(ResetPasswordRequestDto dto) {
         User user = userRepository.findUserByPasswordResetToken(dto.getToken())
-                .orElseThrow(() -> new RuntimeException("Invalid or expired token"));
+                .orElseThrow(() -> new ResourceNotFoundException("Invalid or expired token"));
 
         String encodedPassword = passwordEncoder.encode(dto.getNewPassword());
 

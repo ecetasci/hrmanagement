@@ -15,6 +15,6 @@ public class MailTestRunner implements CommandLineRunner {
     @Override
     public void run(String... args) throws MailSendException {
        // emailService.send("kaan.aydemir.iu@gmail.com", "Test maili başarıyla gönderildi!");
-        System.out.println("Test maili gönderildi, inbox'u kontrol et 🎉");
+       // System.out.println("Test maili gönderildi, inbox'u kontrol et 🎉");
     }
 }

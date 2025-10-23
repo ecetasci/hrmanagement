@@ -8,6 +8,7 @@ import com.ecetasci.hrmanagement.enums.LeaveStatus;
 import com.ecetasci.hrmanagement.mapper.LeaveMapper;
 import com.ecetasci.hrmanagement.repository.EmployeeRepository;
 import com.ecetasci.hrmanagement.repository.LeaveTypeRepository;
+import com.ecetasci.hrmanagement.exceptions.ResourceNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,7 +34,8 @@ public class LeaveService {
         // Map DTO -> entity
         LeaveRequest entity = leaveMapper.toEntity(leaveRequestDto);
 
-        Employee employee = employeeRepository.findByEmployeeNumber(leaveRequestDto.employeeNumber()).orElseThrow();
+        Employee employee = employeeRepository.findByEmployeeNumber(leaveRequestDto.employeeNumber())
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + leaveRequestDto.employeeNumber()));
         var leaveType = leaveTypeRepository.findById(leaveRequestDto.leaveTypeId())
                 .orElseThrow(() -> new IllegalArgumentException("LeaveType not found: " + leaveRequestDto.leaveTypeId()));
 
@@ -55,13 +57,13 @@ public class LeaveService {
                 );
 
         if (hasOverlap) {
-            throw new RuntimeException("Bu tarih aralığında zaten izin talebiniz var!");
+            throw new IllegalStateException("Bu tarih aralığında zaten izin talebiniz var!");
         }
 
         int totalDays = calculateWorkingDays(startDate, endDate);
 
         if (employee.getLeaveBalance() < totalDays) {
-            throw new RuntimeException("Yetersiz izin bakiyesi!");
+            throw new IllegalStateException("Yetersiz izin bakiyesi!");
         }
 
         // Entity'ye eksik atamaları yap
@@ -78,29 +80,29 @@ public class LeaveService {
     @Transactional
     public void approveLeaveRequest(String employeeNumber, LocalDate startDate, String managerEmployeeNumber) {
         Employee employee = employeeRepository.findByEmployeeNumber(employeeNumber)
-                .orElseThrow(() -> new RuntimeException("Employee not found: " + employeeNumber));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + employeeNumber));
 
         LeaveRequest request = employee.getLeaveRequests().stream()
                 .filter(r -> startDate.equals(r.getStartDate()))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Leave request not found for startDate: " + startDate));
+                .orElseThrow(() -> new ResourceNotFoundException("Leave request not found for startDate: " + startDate));
 
         if (request.getStatus() == LeaveStatus.APPROVED) {
-            throw new RuntimeException("Leave request already approved");
+            throw new IllegalStateException("Leave request already approved");
         }
         if (request.getStatus() == LeaveStatus.REJECTED) {
-            throw new RuntimeException("Leave request already rejected");
+            throw new IllegalStateException("Leave request already rejected");
         }
 
         Employee manager = employeeRepository.findByEmployeeNumber(managerEmployeeNumber)
-                .orElseThrow(() -> new RuntimeException("Manager not found: " + managerEmployeeNumber));
+                .orElseThrow(() -> new ResourceNotFoundException("Manager not found: " + managerEmployeeNumber));
 
         Integer totalDays = request.getTotalDays();
         if (totalDays == null) {
-            throw new RuntimeException("Request totalDays is null");
+            throw new IllegalStateException("Request totalDays is null");
         }
         if (employee.getLeaveBalance() < totalDays) {
-            throw new RuntimeException("Yetersiz bakiye!");
+            throw new IllegalStateException("Yetersiz bakiye!");
         }
 
         request.setStatus(LeaveStatus.APPROVED);
@@ -117,21 +119,21 @@ public class LeaveService {
     @Transactional
     public void rejectLeaveRequestByEmployeeNumber(String employeeNumber, String managerEmployeeNumber, String managerNote) {
         Employee employee = employeeRepository.findByEmployeeNumber(employeeNumber)
-                .orElseThrow(() -> new RuntimeException("Employee not found: " + employeeNumber));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + employeeNumber));
 
         Employee managerEmployee = employeeRepository.findByEmployeeNumber(managerEmployeeNumber)
-                .orElseThrow(() -> new RuntimeException("Manager not found: " + managerEmployeeNumber));
+                .orElseThrow(() -> new ResourceNotFoundException("Manager not found: " + managerEmployeeNumber));
 
         LeaveRequest request = employee.getLeaveRequests().stream()
                 .filter(r -> r.getStatus() == LeaveStatus.PENDING) // öncelikle beklemedeki talebi hedefle
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("Pending leave request not found for employee: " + employeeNumber));
+                .orElseThrow(() -> new ResourceNotFoundException("Pending leave request not found for employee: " + employeeNumber));
 
         if (request.getStatus() == LeaveStatus.APPROVED) {
-            throw new RuntimeException("Leave request already approved");
+            throw new IllegalStateException("Leave request already approved");
         }
         if (request.getStatus() == LeaveStatus.REJECTED) {
-            throw new RuntimeException("Leave request already rejected");
+            throw new IllegalStateException("Leave request already rejected");
         }
 
         request.setStatus(LeaveStatus.REJECTED);

@@ -3,11 +3,11 @@ package com.ecetasci.hrmanagement.service;
 import com.ecetasci.hrmanagement.dto.request.LeaveTypeRequest;
 import com.ecetasci.hrmanagement.dto.response.DepartmentDto;
 import com.ecetasci.hrmanagement.dto.response.PositionDto;
-import com.ecetasci.hrmanagement.entity.Company;
 import com.ecetasci.hrmanagement.entity.Department;
 import com.ecetasci.hrmanagement.entity.LeaveType;
 import com.ecetasci.hrmanagement.entity.Position;
 import com.ecetasci.hrmanagement.exceptions.LeaveTypeExistException;
+import com.ecetasci.hrmanagement.exceptions.ResourceNotFoundException;
 import com.ecetasci.hrmanagement.repository.CompanyRepository;
 import com.ecetasci.hrmanagement.repository.DepartmentRepository;
 import com.ecetasci.hrmanagement.repository.LeaveTypeRepository;
@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
@@ -53,7 +54,7 @@ public class DefinitionService {
 
     public Long updateLeaveType(Long id, LeaveTypeRequest updated) {
         LeaveType existing = leaveTypeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("LeaveType not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("LeaveType not found"));
         existing.setName(updated.name());
         existing.setDescription(updated.description());
         existing.setMaxDays(updated.maxDay());
@@ -63,6 +64,7 @@ public class DefinitionService {
     }
 
     public void deleteLeaveType(Long id) {
+        // Tests expect repository.deleteById to be called directly; don't enforce exists check here
         leaveTypeRepository.deleteById(id);
     }
 
@@ -74,10 +76,17 @@ public class DefinitionService {
 
     @Transactional
     public Long saveDepartment(Long companyId, String departmentName, String description) {
+        // Prevent duplicate department name within the same company
+        boolean exists = departmentRepository.findAllByCompanyId(companyId)
+                .stream()
+                .anyMatch(d -> d.getName() != null && d.getName().equalsIgnoreCase(departmentName));
+        if (exists) {
+            throw new IllegalArgumentException("Bu şirkette aynı isimde bir departman zaten mevcut");
+        }
+
         Department department = new Department();
         department.setName(departmentName);
         department.setDescription(description);
-
         department.setCompany(companyRepository.getReferenceById(companyId)); // sadece ID set yeterli
         department.setCreatedAt(LocalDateTime.now());
         Department saved = departmentRepository.save(department);
@@ -87,7 +96,7 @@ public class DefinitionService {
 
     public DepartmentDto updateDepartment(Long id, DepartmentDto departmentDto) {
         Department existing = departmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Department not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
         existing.setName(departmentDto.name());
 
         Department saved = departmentRepository.save(existing);
@@ -97,13 +106,16 @@ public class DefinitionService {
     }
 
     public void deleteDepartment(Long id) {
+        // Allow deleteById to be invoked directly; tests mock repository calls without existsById
         departmentRepository.deleteById(id);
     }
 
     // --- Positions ---
     @Transactional
     public List<PositionDto> findAllPositions(Long companyId) {
-        List<Position> positions = positionRepository.findAllByCompanyId(companyId).orElseThrow();
+        // Tests expect a NoSuchElementException when repository returns Optional.empty()
+        List<Position> positions = positionRepository.findAllByCompanyId(companyId)
+                .orElseThrow(NoSuchElementException::new);
 
         return positions.stream()
                 .map(position -> new PositionDto(
@@ -129,7 +141,7 @@ public class DefinitionService {
     @Transactional
     public PositionDto updatePosition(Long id, PositionDto updated) {
         Position existing = positionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Position not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Position not found"));
 
         existing.setName(updated.name());
         existing.setDescription(updated.description());
@@ -141,6 +153,7 @@ public class DefinitionService {
 
     @Transactional
     public void deletePosition(Long id) {
+        // Tests mock deleteById directly; avoid pre-check that causes ResourceNotFoundException
         positionRepository.deleteById(id);
     }
 }

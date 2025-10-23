@@ -12,7 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import com.ecetasci.hrmanagement.exceptions.ResourceNotFoundException;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +23,7 @@ public class CompanyManagerService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final CompanyService companyService;
-    private final UserService userService;
+    private final EmployeeService employeeService;
 
     // Personel ekleme
     public Employee createEmployee(RegisterEmployeeRequestDto dto) {
@@ -44,7 +44,7 @@ public class CompanyManagerService {
         employee.setRole(Role.EMPLOYEE);
         //employee.setActive(false);
         employee.setCompany(companyService.findById(dto.companyId()));
-        employee.setEmployeeNumber(userService.generateEmployeeNumber());
+        employee.setEmployeeNumber(employeeService.generateEmployeeNumber());
         employee.setDepartment(dto.department());
         employee.setPosition(dto.position());
         employee.setEmail(dto.email());
@@ -63,7 +63,7 @@ public class CompanyManagerService {
     // Güncelleme
     public Employee updateEmployee(Long id, RegisterEmployeeRequestDto dto) {
         Employee emp = employeeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
 
         emp.setName(dto.name());
 
@@ -83,7 +83,7 @@ public class CompanyManagerService {
 
     public void deleteEmployee(Long id) {
         Employee emp = employeeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
 
         // önce User’ı da silmek istersen:
         if (emp.getUser() != null) {
@@ -97,7 +97,7 @@ public class CompanyManagerService {
     // Aktifleştirme/Pasifleştirme + email bildirimi
     public Employee setEmployeeActiveStatus(Long id, boolean active) {
         Employee emp = employeeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
        // emp.setActive(active);
         employeeRepository.save(emp);
 
@@ -112,4 +112,3 @@ public class CompanyManagerService {
 
 
 }
-

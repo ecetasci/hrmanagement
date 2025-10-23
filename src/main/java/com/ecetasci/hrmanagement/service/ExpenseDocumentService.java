@@ -10,6 +10,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import com.ecetasci.hrmanagement.exceptions.ResourceNotFoundException;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -31,21 +32,24 @@ public class ExpenseDocumentService {
      */
     public ExpenseDocument uploadDocument(Long expenseId, MultipartFile file) throws IOException {
         Expense expense = expenseRepository.findById(expenseId)
-                .orElseThrow(() -> new RuntimeException("Expense not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
-        // 1️⃣ Dosya tipi ve boyut validasyonu
+        // 1Dosya tipi ve boyut validasyonu
         validateFile(file);
 
-        // 2️⃣ Klasör oluşturma
+        //  Klasör oluşturma
         Path expenseFolder = Path.of(uploadDir, String.valueOf(expenseId));
         Files.createDirectories(expenseFolder);
 
-        // 3️⃣ Dosyayı kaydet
+        //  Dosyayı kaydet
         String fileName = file.getOriginalFilename();
+        if (fileName == null || fileName.isBlank()) {
+            throw new IllegalArgumentException("Uploaded file must have a name");
+        }
         Path filePath = expenseFolder.resolve(fileName);
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-        // 4️⃣ Veritabanına belge ekle
+        //  Veritabanına belge ekle
         ExpenseDocument document = ExpenseDocument.builder()
                 .expense(expense)
                 .fileName(fileName)
@@ -72,11 +76,11 @@ public class ExpenseDocumentService {
      */
     public Resource downloadDocument(Long documentId) {
         ExpenseDocument document = expenseDocumentRepository.findById(documentId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found"));
 
         Path filePath = Path.of(document.getFilePath());
         if (!Files.exists(filePath)) {
-            throw new RuntimeException("File not found on disk: " + filePath);
+            throw new ResourceNotFoundException("File not found on disk: " + filePath);
         }
 
         return new FileSystemResource(filePath.toFile());
@@ -94,34 +98,36 @@ public class ExpenseDocumentService {
      */
     public void deleteDocument(Long documentId) {
         ExpenseDocument document = expenseDocumentRepository.findById(documentId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found"));
 
         try {
             Files.deleteIfExists(Path.of(document.getFilePath()));
         } catch (IOException e) {
-            throw new RuntimeException("Could not delete file from disk", e);
+            throw new IllegalStateException("Could not delete file from disk", e);
         }
 
         expenseDocumentRepository.delete(document);
     }
 
     /**
-     * 📋 Yardımcı metot: dosya doğrulama
+     * Yardımcı metot: dosya doğrulama
      */
     private void validateFile(MultipartFile file) {
         if (file.isEmpty()) {
-            throw new RuntimeException("Empty file cannot be uploaded");
+            throw new IllegalArgumentException("Empty file cannot be uploaded");
         }
 
         String fileType = file.getContentType();
-        if (!(fileType.equals("image/jpeg") ||
-                fileType.equals("image/png") ||
-                fileType.equals("application/pdf"))) {
-            throw new RuntimeException("Unsupported file type: " + fileType);
+        if (!("image/jpeg".equals(fileType) ||
+                "image/png".equals(fileType) ||
+                "application/pdf".equals(fileType) ||
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(fileType) ||
+                "application/msword".equals(fileType))) {
+            throw new IllegalArgumentException("Unsupported file type: " + fileType);
         }
 
         if (file.getSize() > 5 * 1024 * 1024) { // 5MB
-            throw new RuntimeException("File size exceeds 5MB limit");
+            throw new IllegalArgumentException("File size exceeds 5MB limit");
         }
     }
 }

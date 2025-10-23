@@ -6,22 +6,31 @@ import com.ecetasci.hrmanagement.dto.response.*;
 import com.ecetasci.hrmanagement.entity.Company;
 import com.ecetasci.hrmanagement.entity.Department;
 import com.ecetasci.hrmanagement.entity.LeaveType;
-import com.ecetasci.hrmanagement.entity.Position;
 import com.ecetasci.hrmanagement.enums.ResponseMessageEnum;
-import com.ecetasci.hrmanagement.enums.SubscriptionType;
 import com.ecetasci.hrmanagement.repository.CompanyRepository;
 import com.ecetasci.hrmanagement.service.DefinitionService;
 import com.ecetasci.hrmanagement.service.SiteAdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Pageable;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * AdminController — site yöneticisi işlemleri ve şirket/definition yönetimi.
+ * Sağladığı işlevler:
+ * - Şirket listesini sayfalandırarak getirir
+ * - Üyelik planı (subscription) oluşturma
+ * - Şirket başvurularını onaylama/reddetme
+ * - Tanım (leave types, departments, positions) CRUD işlemleri
+ */
 @RestController
 @RequestMapping("api/admin")
 @RequiredArgsConstructor
@@ -33,25 +42,58 @@ public class AdminController {
     private final DefinitionService definitionService;
 
 
+    /**
+     * Şirketleri sayfalandırılmış şekilde getirir.
+     *
+     * @param page Sayfa numarası (varsayılan 0)
+     * @param size Sayfa boyutu (varsayılan 10)
+     * @param sortBy Sıralama alanı (varsayılan id)
+     * @param direction Sıralama yönü (asc/desc)
+     * @return PagedResponse içindeki CompanyResponse nesneleri ile BaseResponse
+     */
     @GetMapping("/list-company")
-    public ResponseEntity<BaseResponse<List<CompanyResponse>>> getCompanies() {
-        List<Company> companies = companyRepository.findAll();
-        List<CompanyResponse> list = companies.stream().map(company -> new CompanyResponse(company.getId(), company.getCompanyName(),
-                company.getCompanyEmail(), company.getPhoneNumber(), company.getAddress(), company.getTaxNumber(),
-                company.getWebsite(), company.getEmployeeCount(), company.getFoundedDate())).toList();
-        return ResponseEntity.ok(BaseResponse.<List<CompanyResponse>>builder()
+    public ResponseEntity<BaseResponse<PagedResponse<CompanyResponse>>> getCompanies(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+
+        Sort sort = "desc".equalsIgnoreCase(direction) ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Company> companiesPage = companyRepository.findAll(pageable);
+
+        List<CompanyResponse> content = companiesPage.getContent().stream()
+                .map(company -> new CompanyResponse(company.getId(), company.getCompanyName(),
+                        company.getCompanyEmail(), company.getPhoneNumber(), company.getAddress(), company.getTaxNumber(),
+                        company.getWebsite(), company.getEmployeeCount(), company.getFoundedDate()))
+                .toList();
+
+        PagedResponse<CompanyResponse> pagedResponse = PagedResponse.<CompanyResponse>builder()
+                .content(content)
+                .page(companiesPage.getNumber())
+                .size(companiesPage.getSize())
+                .totalElements(companiesPage.getTotalElements())
+                .totalPages(companiesPage.getTotalPages())
+                .last(companiesPage.isLast())
+                .build();
+
+        return ResponseEntity.ok(BaseResponse.<PagedResponse<CompanyResponse>>builder()
                 .success(true)
                 .code(200)
                 .message("Companies retrieved successfully")
-                .data(list)
+                .data(pagedResponse)
                 .build());
     }
 
-    //POST /api/admin/companies/{id}/subscription - Üyelik planı oluştur*/
-
+    /**
+     * Yeni bir şirket için abonelik (subscription) oluşturur.
+     *
+     * @param subscriptionRequestDto Abonelik bilgilerini içeren DTO
+     * @return Oluşturulan abonelik bilgileri
+     */
     @PostMapping("/create-subscription")
     public ResponseEntity<BaseResponse<SubscriptionResponseDto>> createSubscription(
-          @Valid @RequestBody SubscriptionRequestDto subscriptionRequestDto) {
+            @Valid @RequestBody SubscriptionRequestDto subscriptionRequestDto) {
 
         SubscriptionResponseDto subscription = siteAdminService.createSubscription(subscriptionRequestDto);
 
@@ -64,8 +106,12 @@ public class AdminController {
                         .build());
     }
 
-
-    /* ● PUT /api/admin/companies/{id}/approve - Başvuru onayı */
+    /**
+     * Şirket başvurusunu onaylar.
+     *
+     * @param id Onaylanacak şirket başvurusunun ID'si
+     * @return Başarı mesajı ve şirket ID'si
+     */
     @PutMapping("/{id}/approve")
     public ResponseEntity<BaseResponse<String>> approveCompany(@PathVariable Long id) {
 
@@ -80,22 +126,30 @@ public class AdminController {
                         .build());
     }
 
-    /* ● PUT /api/admin/companies/{id}/reject - Başvuru reddi */
+    /**
+     * Şirket başvurusunu reddeder.
+     *
+     * @param id Reddedilecek şirket başvurusunun ID'si
+     */
     @PutMapping("/{id}/reject")
     public ResponseEntity<BaseResponse<String>> rejectCompany(@PathVariable Long id) {
         siteAdminService.rejectCompanyApplication(id);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(BaseResponse.<String>builder()
-                        .success(false)
+                        .success(true)
                         .code(200)
                         .message("Company application rejected")
                         .data("Company ID: " + id)
                         .build());
     }
 
-
-    // === Definitions: Leave Types ===
+    /**
+     * İzin türlerini listeler.
+     *
+     * @param id (Opsiyonel) filtreleme için kullanılabilir
+     * @return İzin türleri listesi
+     */
     @GetMapping("/definitions/leave-types")
     public ResponseEntity<BaseResponse<List<LeaveType>>> getLeaveTypes(Long id) {
         List<LeaveType> leaveTypeList = definitionService.findAllLeaveTypes(id);
@@ -110,6 +164,12 @@ public class AdminController {
 
     }
 
+    /**
+     * Yeni izin türü oluşturur.
+     *
+     * @param leaveTypeRequest Oluşturulacak izin türü bilgileri
+     * @return Oluşturulan izin türünün ID'si
+     */
     @PostMapping("/definitions/create-leave-types")
     public ResponseEntity<BaseResponse<Long>> createLeaveType(@RequestBody @Valid LeaveTypeRequest leaveTypeRequest) {
         Long leaveTypeId = definitionService.saveLeaveType(leaveTypeRequest);
@@ -122,6 +182,13 @@ public class AdminController {
                         .build());
     }
 
+    /**
+     * İzin türünü günceller.
+     *
+     * @param id Güncellenecek izin türünün ID'si
+     * @param leaveTypeRequest Yeni veri
+     * @return Güncellenmiş izin türünün ID'si
+     */
     @PutMapping("/definitions/leave-types/{id}")
     public ResponseEntity<BaseResponse<Long>> updateLeaveType(@PathVariable Long id, @RequestBody LeaveTypeRequest leaveTypeRequest) {
         Long updatedLeaveType = definitionService.updateLeaveType(id, leaveTypeRequest);
@@ -135,19 +202,29 @@ public class AdminController {
                         .build());
     }
 
+    /**
+     * İzin türünü siler.
+     *
+     * @param id Silinecek izin türünün ID'si
+     */
     @DeleteMapping("/definitions/leave-types/{id}")
     public void deleteLeaveType(@PathVariable Long id) {
         definitionService.deleteLeaveType(id);
     }
 
 
-    // ================= DEPARTMENTS ==================
+    /**
+     * Departmanları getirir.
+     *
+     * @param id (Opsiyonel) şirket id ile filtreleme
+     * @return Departman DTO listesi
+     */
     @GetMapping("/definitions/departments")
     public ResponseEntity<BaseResponse<List<DepartmentDto>>> getDepartments(@RequestParam Long id) {
         List<Department> departmentList = definitionService.findAllDepartments(id);
-        List<DepartmentDto> departmantDtoList = departmentList.stream().map(department -> {
-            return new DepartmentDto(department.getId(), department.getName(), department.getCompany().getCompanyName());
-        }).toList();
+        List<DepartmentDto> departmantDtoList = departmentList.stream()
+                .map(department -> new DepartmentDto(department.getId(), department.getName(), department.getCompany().getCompanyName()))
+                .toList();
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(BaseResponse.<List<DepartmentDto>>builder()
@@ -159,22 +236,47 @@ public class AdminController {
 
     }
 
+    /**
+     * Yeni departman oluşturur.
+     *
+     * @param companyId Şirket ID'si
+     * @param departmentName Departman adı
+     * @param description Açıklama
+     * @return Oluşturulan departman ID'si
+     */
     @PostMapping("/definitions/create-departments")
     public Long createDepartment(@RequestBody Long companyId, String departmentName, String description) {
         return definitionService.saveDepartment(companyId, departmentName, description);
     }
 
+    /**
+     * Departmanı günceller.
+     *
+     * @param id Departman ID
+     * @param departmentDto Güncel departman verisi
+     * @return Güncellenmiş departman DTO
+     */
     @PutMapping("/definitions/departments/{id}")
     public DepartmentDto updateDepartment(@PathVariable Long id, DepartmentDto departmentDto) {
         return definitionService.updateDepartment(id, departmentDto);
     }
 
+    /**
+     * Departmanı siler.
+     *
+     * @param id Departman ID
+     */
     @DeleteMapping("/definitions/departments/{id}")
     public void deleteDepartment(@PathVariable Long id) {
         definitionService.deleteDepartment(id);
     }
 
-    // ================= POSITIONS ==================
+    /**
+     * Pozisyonları listeler.
+     *
+     * @param companyId Şirket ID'si ile filtreleme
+     * @return Pozisyon DTO listesi
+     */
     @GetMapping("/definitions/positions")
     public ResponseEntity<BaseResponse<List<PositionDto>>> getPositions(@RequestParam Long companyId) {
         List<PositionDto> allPositions = definitionService.findAllPositions(companyId);
@@ -188,16 +290,34 @@ public class AdminController {
 
     }
 
+    /**
+     * Yeni pozisyon oluşturur.
+     *
+     * @param position Pozisyon DTO
+     * @return Oluşturulan pozisyon ID'si
+     */
     @PostMapping("/definitions/create-positions")
     public Long createPosition(@RequestBody PositionDto position) {
         return definitionService.savePosition(position);
     }
 
+    /**
+     * Pozisyonu günceller.
+     *
+     * @param id Pozisyon ID
+     * @param position Yeni pozisyon verisi
+     * @return Güncellenmiş pozisyon DTO
+     */
     @PutMapping("/definitions/positions/{id}")
     public PositionDto updatePosition(@PathVariable Long id, @RequestBody PositionDto position) {
         return definitionService.updatePosition(id, position);
     }
 
+    /**
+     * Pozisyonu siler.
+     *
+     * @param id Pozisyon ID
+     */
     @DeleteMapping("/definitions/positions/{id}")
     public void deletePosition(@PathVariable Long id) {
         definitionService.deletePosition(id);
@@ -205,4 +325,3 @@ public class AdminController {
 
 
 }
-

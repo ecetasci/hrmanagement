@@ -10,6 +10,7 @@ import com.ecetasci.hrmanagement.repository.ExpenseRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import com.ecetasci.hrmanagement.exceptions.ResourceNotFoundException;
 
 import java.util.List;
 
@@ -36,7 +37,7 @@ public class ExpenseService {
 
     public ExpenseResponseDto createExpense(Long employeeId, ExpenseCreateRequest dto) {
         Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
 
         Expense expense = Expense.builder()
                 .expenseDate(dto.expenseDate())
@@ -73,7 +74,7 @@ public class ExpenseService {
     @Transactional
     public void approveExpense(Long expenseId) {
         Expense expense = expenseRepository.findById(expenseId)
-                .orElseThrow(() -> new RuntimeException("Expense not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
         expense.setStatus(ExpenseStatus.APPROVED);
         expense.setWillAdd(true);
@@ -83,7 +84,7 @@ public class ExpenseService {
     @Transactional
     public void rejectExpense(Long expenseId) {
         Expense expense = expenseRepository.findById(expenseId)
-                .orElseThrow(() -> new RuntimeException("Expense not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
         expense.setStatus(ExpenseStatus.REJECTED);
         expense.setWillAdd(false);
@@ -92,10 +93,10 @@ public class ExpenseService {
 
     public ExpenseResponseDto updateRejectedExpense(Long expenseId, ExpenseCreateRequest dto) {
         Expense expense = expenseRepository.findById(expenseId)
-                .orElseThrow(() -> new RuntimeException("Expense not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Expense not found"));
 
         if (!ExpenseStatus.REJECTED.equals(expense.getStatus())) {
-            throw new RuntimeException("Only rejected expenses can be updated!");
+            throw new IllegalStateException("Only rejected expenses can be updated!");
         }
 
         expense.setExpenseDate(dto.expenseDate());

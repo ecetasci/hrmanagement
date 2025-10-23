@@ -1,7 +1,6 @@
 package com.ecetasci.hrmanagement.entity;
 
 import com.ecetasci.hrmanagement.enums.UserStatus;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,7 +29,7 @@ public class Company extends BaseEntity{
     @Column(length = 20)
     private String phoneNumber;
 
-    @Column
+    @Column(length = 255)
     private String address;
 
     @Column(length = 50)
@@ -49,11 +48,9 @@ public class Company extends BaseEntity{
     private String description;
 
     @OneToMany(mappedBy = "company", cascade = {CascadeType.ALL})
-    @JsonManagedReference("company-subscriptions")
     private List<CompanySubscription> subscriptions;
 
     @OneToMany(mappedBy = "company", cascade = {CascadeType.ALL})
-    @JsonManagedReference("company-employees")
     private List<Employee> employees;
 
     @Enumerated(EnumType.STRING)

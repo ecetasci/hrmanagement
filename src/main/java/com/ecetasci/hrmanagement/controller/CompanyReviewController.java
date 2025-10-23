@@ -5,7 +5,6 @@ import com.ecetasci.hrmanagement.dto.response.BaseResponse;
 import com.ecetasci.hrmanagement.dto.response.CompanyReviewResponse;
 import com.ecetasci.hrmanagement.dto.response.ReviewDetailResponse;
 import com.ecetasci.hrmanagement.entity.CompanyReview;
-import com.ecetasci.hrmanagement.entity.Employee;
 import com.ecetasci.hrmanagement.entity.User;
 import com.ecetasci.hrmanagement.enums.Role;
 import com.ecetasci.hrmanagement.exceptions.UnauthorizedException;
@@ -16,9 +15,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * CompanyReviewController — şirket incelemeleri (reviews) ile ilgili endpointler.
+ *
+ * Sağladığı işlevler:
+ * - Halka açık inceleme listeleme
+ * - Site admin tarafından inceleme yayınlama
+ * - İnceleme silme, güncelleme ve detay görüntüleme
+ */
 @RestController
 @RequestMapping("api/reviews")
 @RequiredArgsConstructor
@@ -27,6 +33,12 @@ public class CompanyReviewController {
     private final CompanyReviewService companyReviewService;
     private final UserService userService;
 
+    /**
+     * Belirtilen şirketin tüm genel (public) incelemelerini listeler.
+     *
+     * @param companyId (opsiyonel) filtreleme için kullanılabilir
+     * @return İnceleme listesi içeren BaseResponse
+     */
     @GetMapping("/public")
     public ResponseEntity<BaseResponse<List<CompanyReviewResponse>>> listReview(Long companyId) {
         List<CompanyReviewResponse> all = companyReviewService.findAll();
@@ -38,7 +50,16 @@ public class CompanyReviewController {
                 .build());
     }
 
-    //create//site admin yap security
+    /**
+     * Site admin yetkisine sahip kullanıcı tarafından yeni bir inceleme (review) oluşturur ve yayınlar.
+     *
+     * @param userId İncelemeyi yayınlayan kullanıcı ID'si
+     * @param companyId İnceleme yapılacak şirket ID'si
+     * @param title İnceleme başlığı
+     * @param content İnceleme içeriği
+     * @param rating Puan (ör. 1-5)
+     * @return Oluşturulan CompanyReviewResponse içeren BaseResponse
+     */
     @PostMapping("/company/publish-review")
     public ResponseEntity<BaseResponse<CompanyReviewResponse>> createReview(Long userId, Long companyId, String title,
                                                                             String content, Integer rating) {
@@ -53,7 +74,12 @@ public class CompanyReviewController {
     }
 
 
-    //Delete
+    /**
+     * Şirket incelemesini siler.
+     *
+     * @param companyId Silinecek incelemenin ait olduğu şirket ID'si
+     * @return Başarı mesajı içeren BaseResponse
+     */
     @DeleteMapping("/company/delete-review")
     public ResponseEntity<BaseResponse<String>> deleteReview(@RequestParam Long companyId) {
         companyReviewService.deleteWithId(companyId);
@@ -64,6 +90,12 @@ public class CompanyReviewController {
                 .build());
     }
 
+    /**
+     * Mevcut bir incelemeyi günceller.
+     *
+     * @param updateCompanyReviewRequest Güncelleme için gerekli verileri taşıyan DTO
+     * @return Başarı mesajı içeren BaseResponse
+     */
     @PutMapping("/company/update-review")
     public ResponseEntity<BaseResponse<String>> updateReview(@RequestBody @Valid UpdateCompanyReviewRequest updateCompanyReviewRequest) {
 
@@ -84,7 +116,12 @@ public class CompanyReviewController {
     }
 
 
-    //Details
+    /**
+     * İnceleme detaylarını döner.
+     *
+     * @param reviewId İnceleme ID'si
+     * @return ReviewDetailResponse içeren BaseResponse
+     */
     @PostMapping("/company/review_detail")
     public ResponseEntity<BaseResponse<ReviewDetailResponse>> reviewDetail(@RequestParam
                                                                            Long reviewId) {

@@ -1,13 +1,9 @@
 package com.ecetasci.hrmanagement.service;
 
 import com.ecetasci.hrmanagement.dto.request.EmployeeRequestDto;
-import com.ecetasci.hrmanagement.dto.request.ExpenseCreateRequest;
 import com.ecetasci.hrmanagement.dto.response.EmployeeResponseDto;
-import com.ecetasci.hrmanagement.dto.response.ExpenseResponseDto;
 import com.ecetasci.hrmanagement.entity.Company;
 import com.ecetasci.hrmanagement.entity.Employee;
-import com.ecetasci.hrmanagement.entity.Expense;
-import com.ecetasci.hrmanagement.enums.ExpenseStatus;
 import com.ecetasci.hrmanagement.enums.UserStatus;
 import com.ecetasci.hrmanagement.repository.CompanyRepository;
 import com.ecetasci.hrmanagement.repository.EmployeeRepository;
@@ -18,9 +14,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+
+import com.ecetasci.hrmanagement.exceptions.ResourceNotFoundException;
 
 @Service
 @RequiredArgsConstructor
@@ -48,7 +45,7 @@ public class EmployeeService {
 
     public EmployeeResponseDto createEmployee(Long companyId, EmployeeRequestDto dto) {
         Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new RuntimeException("Company not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
 
         // Otomatik personel numarası üretme
         String employeeNumber = UUID.randomUUID().toString().substring(0,8);
@@ -83,9 +80,26 @@ public class EmployeeService {
         );
     }
 
+    public String generateEmployeeNumber() {
+        // Prefix: tek büyük harf, ardından 6 haneli sıfır dolgulu sayı => A123456
+        for (int attempt = 0; attempt < 10; attempt++) {
+            char prefix = (char) ('A' + ThreadLocalRandom.current().nextInt(26));
+            int number = ThreadLocalRandom.current().nextInt(0, 1_000_000);
+            String candidate = String.format("%c%06d", prefix, number);
+
+            // repository'de var mı kontrol et (findByEmployeeNumber var varsayımıyla)
+            if (employeeRepository.findByEmployeeNumber(candidate).isEmpty()) {
+                return candidate;
+            }
+        }
+
+        // Nadiren çakışma olursa güvenli fallback
+        return "EMP" + System.currentTimeMillis();
+    }
+
     public EmployeeResponseDto updateEmployee(Long id, EmployeeRequestDto dto) {
         Employee emp = employeeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
 
         emp.setName(dto.name());
 
@@ -107,12 +121,15 @@ public class EmployeeService {
     }
 
     public void deleteEmployee(Long id) {
+        if (!employeeRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Employee not found");
+        }
         employeeRepository.deleteById(id);
     }
 
     public void activateEmployee(Long id, boolean activate) {
         Employee emp = employeeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Employee not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
         emp.getUser().setUserStatus(UserStatus.ACTIVE);
         employeeRepository.save(emp);
 
