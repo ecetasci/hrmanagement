@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 
+import static com.ecetasci.hrmanagement.constant.Endpoints.AUTH;
 import static com.ecetasci.hrmanagement.enums.Role.COMPANY_ADMIN;
 
 /**
@@ -39,7 +40,7 @@ import static com.ecetasci.hrmanagement.enums.Role.COMPANY_ADMIN;
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("api/auth")
+@RequestMapping(AUTH)
 public class AuthController {
     private final UserService userService;
     private final CompanyService companyService;
@@ -50,16 +51,16 @@ public class AuthController {
 
 
     /**
-     * Şirket yönetici kaydı yapar.
+     *User kaydı yapar.
      *
-     * @param dto Kayıt için gerekli alanları taşıyan DTO (isim, email, password, companyId vb.)
+     * @param dto Kayıt için gerekli alanları taşıyan DTO (isim, email, password, id vb.)
      * @return Kayıt sonucu ve oluşturulan User nesnesi içeren BaseResponse
      */
     @PostMapping("/company-manager-register")
     @Transactional
     public ResponseEntity<BaseResponse<User>> register(@RequestBody @Valid RegisterCompanyManagerRequestDto dto) {
 
-        if ((userService.findUserByEmail(dto.email())).isPresent()) {
+        if ((userService.findUserByEmail(dto.getEmail())).isPresent()) {
             return ResponseEntity.badRequest().body(BaseResponse.<User>builder()
                     .success(false)
                     .code(400)
@@ -67,24 +68,24 @@ public class AuthController {
                     .build());
         }
             User user = new User();
-            user.setName(dto.name());
-            user.setEmail(dto.email());
-            user.setPassword(passwordEncoder.encode(dto.password())); // şifre encode
+            user.setName(dto.getName());
+            user.setEmail(dto.getEmail());
+            user.setPassword(passwordEncoder.encode(dto.getPassword())); // şifre encode
             user.setRole(COMPANY_ADMIN);
-            user.setPasswordResetToken(jwtManager.generateToken(dto.email()));
+            user.setPasswordResetToken(jwtManager.generateToken(dto.getPassword()));
             user.setCreatedAt(LocalDateTime.now());
-            user.setEmailVerificationToken(jwtManager.generateToken(dto.email()));
+            user.setEmailVerificationToken(jwtManager.generateToken(dto.getEmail()));
             user.setUserStatus(UserStatus.PENDING_EMAIL_VERIFICATION);
 
             User saved = userService.save(user);
 
             Employee employee =new Employee();
             employee.setUser(saved);
-            employee.setName(dto.name());
-            employee.setEmail(dto.email());
+            employee.setName(dto.getName());
+            employee.setEmail(dto.getEmail());
             employee.setPassword(saved.getPassword());
             employee.setRole(saved.getRole());
-            employee.setCompany(companyService.findById(dto.companyId()));
+            employee.setCompany(companyService.findById(dto.getCompanyId()));
             employee.setCreatedAt(saved.getCreatedAt());
 
             employee.setEmployeeNumber(employeeService.generateEmployeeNumber());
@@ -107,7 +108,7 @@ public class AuthController {
      * @return Başarı/başarısızlık bilgisini içeren BaseResponse
      */
     @PostMapping("/verify-email")
-    public ResponseEntity<BaseResponse<String>> verifyEmail(@RequestParam String token) {
+    public ResponseEntity<BaseResponse<String>> verifyEmail(@RequestParam String token, @RequestParam String email) {
         try {
             String username = jwtManager.extractUsername(token);
             if (username == null) {
@@ -119,18 +120,18 @@ public class AuthController {
             }
 
             UserDetails userDetails = new UserPrincipal(
-                    userService.findByUsername(username).orElseThrow()
-            );
+                    userService.findUserByEmail(email).orElseThrow(()->new RuntimeException("User not found")
+            ));
 
             if (jwtManager.verifyToken(token, userDetails)) {
-                User user=userService.findByUsername(username).orElseThrow();
+                User user=userService.findUserByEmail(email).orElseThrow();
                 user.setUserStatus(UserStatus.ACTIVE);
                 userService.save(user);
                          return ResponseEntity.ok(BaseResponse.<String>builder()
                         .success(true)
                         .code(200)
                         .message("Email verified successfully")
-                        .data("Verified user: " + username)
+                        .data("Verified user: " + email)
                         .build());
             } else {
                 return ResponseEntity.badRequest().body(BaseResponse.<String>builder()
@@ -204,7 +205,10 @@ public class AuthController {
      */
     @PostMapping("/forgot-password")
     public ResponseEntity<BaseResponse<String>> forgotPassword(@RequestParam String email) {
-        userService.generateResetToken(email);
+        String token = userService.generateResetToken(email);
+        User user = userService.findUserByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+        user.setPasswordResetToken(token);
+        userService.save(user);
 
         return ResponseEntity.ok(BaseResponse.<String>builder()
                 .success(true)

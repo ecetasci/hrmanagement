@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import static com.ecetasci.hrmanagement.constant.Endpoints.REVIEWS;
+
 /**
  * CompanyReviewController — şirket incelemeleri (reviews) ile ilgili endpointler.
  *
@@ -26,7 +28,7 @@ import java.util.List;
  * - İnceleme silme, güncelleme ve detay görüntüleme
  */
 @RestController
-@RequestMapping("api/reviews")
+@RequestMapping(REVIEWS)
 @RequiredArgsConstructor
 public class CompanyReviewController {
 

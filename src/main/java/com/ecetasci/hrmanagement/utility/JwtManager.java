@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,20 +37,17 @@ public class JwtManager {
 	private SecretKey getSignInKey() {
 		return Keys.hmacShaKeyFor(jwtSecret.getBytes());
 	}
-	
+
 	public String generateToken(String username) {
 		String compact = Jwts.builder()
 				.subject(username)
-				.issuedAt(new Date())
+				.issuedAt(new Date(System.currentTimeMillis()))
 				.expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
 				.signWith(getSignInKey(), Jwts.SIG.HS256)
 				.compact();
 				return compact;
 	}
-	//private SecretKey getSignInKey(){
-	//	return SECRET_KEY;
-	//}
-	
+
 	public String extractUsername(String token) {
 		return extractClaim(token, Claims::getSubject);
 	}

@@ -17,6 +17,6 @@ public interface CompanyReviewRepository extends JpaRepository<CompanyReview,Lon
 
     void deleteCompanyReviewByCompany_Id(Long id);
 
-   // void deleteByCompanyId(Long companyId);
+   // void deleteByCompanyId(Long id);
 
 }

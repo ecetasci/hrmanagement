@@ -1,11 +1,13 @@
 package com.ecetasci.hrmanagement.security;
 
-import com.ecetasci.hrmanagement.security.CustomUserDetailsService;
+import com.ecetasci.hrmanagement.constant.Endpoints;
 import com.ecetasci.hrmanagement.security.JwtAuhenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -19,7 +21,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-	private final CustomUserDetailsService userDetailsService;
 	private final JwtAuhenticationFilter jwtAuhenticationFilter;
 	
 	@Bean
@@ -34,50 +35,77 @@ public class SecurityConfig {
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
 // enable CORS and disable CSRF since the API is stateless
-				.cors().and()
+				.cors(Customizer.withDefaults())
 				.csrf(csrf -> csrf.disable())
 // configure URL based authorization
 				.authorizeHttpRequests(auth -> auth
+// publicly viewable company reviews (generic: accept both /api/reviews/public and /api/v1/dev/reviews/public)
+								.requestMatchers(HttpMethod.GET,
+										"/api/reviews/public",
+										"/api/v1/reviews/public",
+										"/api/v1/dev/reviews/public"
+								).permitAll()
 // public endpoints for authentication and user registration/verification
-								.requestMatchers(
-										"/api/auth/**",
-										"/api/user/login",
-										"/api/user/register",
-										"/api/user/forgot-password",
-										"/api/user/verify"
-								).permitAll()
+						.requestMatchers(
+								Endpoints.AUTH + "/**",
+								Endpoints.USER + "/login",
+								Endpoints.USER + "/register",
+								Endpoints.USER + "/forgot-password",
+								Endpoints.USER + "/verify",
+								Endpoints.USER + "/reset-password",
+								Endpoints.USER + "/public/**",
+								Endpoints.ADMIN + "/create-application-company",
+								//Endpoints.USER + "/find-by-id/**",
+								Endpoints.REVIEWS + "/public"
+							).permitAll()
+
 // documentation endpoints should be publicly accessible
-								.requestMatchers(
-										"/swagger-ui.html",
-										"/swagger-ui/**",
-										"/v3/api-docs/**",
-										"/swagger-resources/**",
-										"/webjars/**"
-								).permitAll()
-// publicly viewable company reviews
-								.requestMatchers(org.springframework.http.HttpMethod.GET, "/api/reviews/public").permitAll()
+						.requestMatchers(
+								"/swagger-ui.html",
+								"/swagger-ui/**",
+								"/v3/api-docs/**",
+								"/swagger-resources/**",
+								"/webjars/**",
+									"/error"
+
+						).permitAll()
+
 // site admin endpoints
-								.requestMatchers(
-										"/api/admin/**",
-										"/api/dashboard/admin/**",
-										"/api/reviews/company/**"
-								).hasRole("SITE_ADMIN")
+						.requestMatchers(
+								Endpoints.ADMIN + "/**",
+								Endpoints.DASHBOARD + "/admin/**",
+								Endpoints.REVIEWS + "/company/**",
+								Endpoints.USER + "/find-all",
+								Endpoints.USER + "/find-by-id/**",
+								Endpoints.USER +"user/find-by-username",
+								Endpoints.USER + "/update-user-profile",
+								Endpoints.USER + "/update-user-password"
+						).hasRole("SITE_ADMIN")
 // company admin (manager) endpoints
-								.requestMatchers(
-										"/api/manager/**",
-										"/api/company/**",
-										"/api/dashboard/company/**",
-										"/api/expenses/company/**",
-										"/api/company/shifts/**"
-								).hasRole("COMPANY_ADMIN")
+						.requestMatchers(
+								//Endpoints.MANAGER + "/**",
+								Endpoints.COMPANY + "/**",
+								Endpoints.DASHBOARD + "/company/**",
+								Endpoints.EXPENSES + "/company/**",
+								Endpoints.COMPANY_SHIFTS + "/**",
+								Endpoints.SHIFT + "/**",
+								Endpoints.LEAVE_TYPES + "/**",
+								Endpoints.DEPARTMENTS + "/**",
+								Endpoints.USER + "/company-admin/update-user-password",
+								Endpoints.MANAGER + "/employees/**",
+								Endpoints.MANAGER +"/employee-register",
+								Endpoints.ADMIN + "/list-company"
+						).hasRole("COMPANY_ADMIN")
 // employee endpoints
-								.requestMatchers(
-										"/api/employee/**",
-										"/api/dashboard/employee/**",
-										"/api/expenses/employee/**"
-								).hasRole("EMPLOYEE")
+						.requestMatchers(
+								Endpoints.EMPLOYEE + "/**",
+								Endpoints.DASHBOARD + "/employee/**",
+								Endpoints.EXPENSES + "/employee/**",
+								Endpoints.SHIFT + "/**"
+
+						).hasRole("EMPLOYEE")
 // any other request must be authenticated
-								.anyRequest().authenticated()
+					//	.anyRequest().authenticated()
 				)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.addFilterBefore(jwtAuhenticationFilter, UsernamePasswordAuthenticationFilter.class);

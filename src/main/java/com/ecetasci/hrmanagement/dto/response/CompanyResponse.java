@@ -9,9 +9,9 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.util.List;
 
-public record CompanyResponse(Long id,String companyName,
-                              String companyEmail,String phoneNumber,
-                              String address,String taxNumber,String website,Integer employeeCount,LocalDate foundedDate) {
+public record CompanyResponse(Long id, String companyName,
+                              String companyEmail, String phoneNumber,
+                              String address, String taxNumber, String website, Integer employeeCount, LocalDate foundedDate) {
 }
 
 

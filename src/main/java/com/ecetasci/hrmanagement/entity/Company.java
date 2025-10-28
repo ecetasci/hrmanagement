@@ -1,5 +1,6 @@
 package com.ecetasci.hrmanagement.entity;
 
+import com.ecetasci.hrmanagement.enums.CompanyStatus;
 import com.ecetasci.hrmanagement.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -53,11 +54,16 @@ public class Company extends BaseEntity{
     @OneToMany(mappedBy = "company", cascade = {CascadeType.ALL})
     private List<Employee> employees;
 
-    @Enumerated(EnumType.STRING)
-    private UserStatus userStatus;
+    //@Enumerated(EnumType.STRING)
+    //private UserStatus userStatus;
 
     @OneToOne(mappedBy = "company", cascade = CascadeType.ALL)
     private CompanyReview companyReview;
+
+    @Column
+    @Enumerated(EnumType.STRING)
+    private CompanyStatus companyStatus;
+
 
     @Column
     private boolean isActive;

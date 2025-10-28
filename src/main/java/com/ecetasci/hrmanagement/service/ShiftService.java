@@ -41,7 +41,7 @@ public class ShiftService {
         // DTO → Entity
         Shift shift = shiftMapper.toEntity(dto);
 
-        // companyId’den şirketi bul ve set et
+        // id’den şirketi bul ve set et
         Company company = companyRepository.findById(dto.companyId())
                 .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
         shift.setCompany(company);

@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import static com.ecetasci.hrmanagement.constant.Endpoints.DASHBOARD;
+
 /**
  * DashboardController — yönetici, şirket ve çalışan panoları için endpointler.
  *
@@ -14,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
  * - Çalışan takvimi (calendar) verisini yıl/ay bazında döner
  */
 @RestController
-@RequestMapping("api/dashboard")
+@RequestMapping(DASHBOARD)
 @RequiredArgsConstructor
 public class DashboardController {
 

@@ -99,6 +99,7 @@ public class DefinitionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
         existing.setName(departmentDto.name());
 
+
         Department saved = departmentRepository.save(existing);
         saved.setUpdatedAt(LocalDateTime.now());
         DepartmentDto departmentDto1 = new DepartmentDto(saved.getId(), saved.getName(), saved.getCompany().getCompanyName());
@@ -131,7 +132,7 @@ public class DefinitionService {
         Position position = new Position();
         position.setName(positionDto.name());
         position.setDescription(positionDto.description());
-        position.setCompany(companyRepository.getReferenceById(positionDto.companyId()));
+        position.setCompany(companyRepository.getReferenceById(positionDto.id()));
         position.setCreatedAt(LocalDateTime.now());
 
         Position saved = positionRepository.save(position);

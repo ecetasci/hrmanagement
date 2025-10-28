@@ -19,6 +19,7 @@ import com.ecetasci.hrmanagement.repository.EmployeeRepository;
 import com.ecetasci.hrmanagement.repository.LeaveTypeRepository;
 import com.ecetasci.hrmanagement.service.*;
 import com.ecetasci.hrmanagement.mapper.LeaveMapper;
+import com.ecetasci.hrmanagement.utility.JwtManager;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
+import static com.ecetasci.hrmanagement.constant.Endpoints.MANAGER;
 
 
 /**
@@ -41,7 +43,7 @@ import java.util.List;
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("api/manager")
+@RequestMapping(MANAGER)
 public class CompanyManagerController {
     private final CompanyManagerService companyManagerService;
     private final LeaveService leaveService;
@@ -50,6 +52,8 @@ public class CompanyManagerController {
     private final AssetService assetService;
     private final ExpenseService expenseService;
     private final LeaveMapper leaveMapper; // added for mapping
+    private final EmailService emailService;
+    private final JwtManager jwtManager;
 
 
 
@@ -73,6 +77,8 @@ public class CompanyManagerController {
                     saved.getPosition(),
                     saved.getDepartment()
             );
+
+
 
             return ResponseEntity.ok(BaseResponse.<EmployeeResponseDto>builder()
                     .success(true)

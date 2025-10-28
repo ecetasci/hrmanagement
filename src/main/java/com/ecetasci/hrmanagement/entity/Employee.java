@@ -72,6 +72,7 @@ public class Employee extends BaseEntity{
     private String password;
 
     @Column(nullable = false)
+    @Builder.Default
     private Integer leaveBalance = 15;
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
@@ -81,5 +82,7 @@ public class Employee extends BaseEntity{
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
     private List<Expense> expenses;
 
-
+    public String getEmail() {
+        return email;
+    }
 }

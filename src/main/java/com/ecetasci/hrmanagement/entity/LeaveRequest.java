@@ -35,6 +35,7 @@ public class LeaveRequest extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private LeaveStatus status = LeaveStatus.PENDING; // Varsayılan: PENDING
 
     @Column(length = 500)

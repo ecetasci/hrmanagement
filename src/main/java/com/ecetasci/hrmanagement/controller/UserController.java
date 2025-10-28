@@ -27,6 +27,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static com.ecetasci.hrmanagement.constant.Endpoints.USER;
+
 /**
  * UserController — genel kullanıcı yönetimi ve site-admin işlemleri.
  *
@@ -40,7 +42,7 @@ import java.util.Optional;
  */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("api/user")
+@RequestMapping(USER)
 public class UserController {
     private final UserService userService;
     private final EmailService emailService;
@@ -98,7 +100,7 @@ public class UserController {
      * @return Kayıt sonucu ve RegisterResponseDto içeren BaseResponse
      */
     @PostMapping("/register")
-    public ResponseEntity<BaseResponse<RegisterResponseDto>> register(@RequestBody @Valid RegisterRequestDto dto) {
+    public ResponseEntity<BaseResponse<RegisterResponseDto>> register(@RequestBody @Valid RegisterRequestDto dto, Long companyId) {
 
         System.out.println("register metodu tetiklendi.");
         RegisterResponseDto registeredUser = userService.register(dto);
@@ -141,7 +143,7 @@ public class UserController {
      * @param token Doğrulama tokenı
      * @return Basit mesaj (ok veya hata)
      */
-    @GetMapping("/verify")
+    @PostMapping("/verify")
     public ResponseEntity<String> verify(@RequestParam String token) {
         userService.verifyEmail(token);
         return ResponseEntity.ok("Email verified successfully");

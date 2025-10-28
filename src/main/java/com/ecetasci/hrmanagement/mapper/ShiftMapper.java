@@ -10,7 +10,7 @@ import org.mapstruct.Mapping;
 public interface ShiftMapper {
 
     // ENTITY → DTO
-    @Mapping(source = "company.id", target = "companyId")
+    @Mapping(source = "company.id", target = "id")
     @Mapping(source = "company.companyName", target = "companyName")
     ShiftResponseDto toDto(Shift entity);
 

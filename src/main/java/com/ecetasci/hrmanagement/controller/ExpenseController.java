@@ -17,6 +17,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 
+
+import static com.ecetasci.hrmanagement.constant.Endpoints.EXPENSES;
+
 /**
  * ExpenseController — gider (expense) ve gider dokümanları işlemleri.
  *
@@ -27,7 +30,7 @@ import java.util.List;
  * - Gider onay/reddetme ve reddedilen gider güncelleme
  */
 @RestController
-@RequestMapping("api/expenses")
+@RequestMapping(EXPENSES)
 @RequiredArgsConstructor
 public class ExpenseController {
 

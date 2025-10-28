@@ -1,7 +1,6 @@
 package com.ecetasci.hrmanagement.controller;
 
-import com.ecetasci.hrmanagement.dto.request.LeaveTypeRequest;
-import com.ecetasci.hrmanagement.dto.request.SubscriptionRequestDto;
+import com.ecetasci.hrmanagement.dto.request.*;
 import com.ecetasci.hrmanagement.dto.response.*;
 import com.ecetasci.hrmanagement.entity.Company;
 import com.ecetasci.hrmanagement.entity.Department;
@@ -10,6 +9,8 @@ import com.ecetasci.hrmanagement.enums.ResponseMessageEnum;
 import com.ecetasci.hrmanagement.repository.CompanyRepository;
 import com.ecetasci.hrmanagement.service.DefinitionService;
 import com.ecetasci.hrmanagement.service.SiteAdminService;
+import com.ecetasci.hrmanagement.service.UserService;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import static com.ecetasci.hrmanagement.constant.Endpoints.ADMIN;
+
 /**
  * AdminController — site yöneticisi işlemleri ve şirket/definition yönetimi.
  * Sağladığı işlevler:
@@ -32,7 +35,7 @@ import java.util.List;
  * - Tanım (leave types, departments, positions) CRUD işlemleri
  */
 @RestController
-@RequestMapping("api/admin")
+@RequestMapping(ADMIN)
 @RequiredArgsConstructor
 public class AdminController {
 
@@ -40,14 +43,15 @@ public class AdminController {
     private final CompanyRepository companyRepository;
     private final SiteAdminService siteAdminService;
     private final DefinitionService definitionService;
+    private final UserService userService;
 
 
     /**
      * Şirketleri sayfalandırılmış şekilde getirir.
      *
-     * @param page Sayfa numarası (varsayılan 0)
-     * @param size Sayfa boyutu (varsayılan 10)
-     * @param sortBy Sıralama alanı (varsayılan id)
+     * @param page      Sayfa numarası (varsayılan 0)
+     * @param size      Sayfa boyutu (varsayılan 10)
+     * @param sortBy    Sıralama alanı (varsayılan id)
      * @param direction Sıralama yönü (asc/desc)
      * @return PagedResponse içindeki CompanyResponse nesneleri ile BaseResponse
      */
@@ -62,11 +66,15 @@ public class AdminController {
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Company> companiesPage = companyRepository.findAll(pageable);
 
+        System.out.println(companiesPage);
+
         List<CompanyResponse> content = companiesPage.getContent().stream()
                 .map(company -> new CompanyResponse(company.getId(), company.getCompanyName(),
                         company.getCompanyEmail(), company.getPhoneNumber(), company.getAddress(), company.getTaxNumber(),
                         company.getWebsite(), company.getEmployeeCount(), company.getFoundedDate()))
                 .toList();
+
+        System.out.println(content);
 
         PagedResponse<CompanyResponse> pagedResponse = PagedResponse.<CompanyResponse>builder()
                 .content(content)
@@ -84,6 +92,36 @@ public class AdminController {
                 .data(pagedResponse)
                 .build());
     }
+
+
+    /**
+     * Yeni bir şirket başvurusu oluşturur.Admin onayına sunar. Aynı zamanda user oluşturarak,
+     * şirket yöneticisi kaydı da yapar. Bu şekilde subscription oluşturulmadan önce şirket yöneticisi de sisteme eklenmiş olur.
+     * Ve security kısmında da yalnızca yetkili  kişi olan company admin subscription oluşturabilir.
+     *
+     * @param companyRequest Şirket başvurusu bilgilerini içeren DTO
+     * @return Oluşturulan şirket başvurusu bilgileri
+     */
+    @Transactional
+    @PostMapping("/create-application-company")
+    public ResponseEntity<BaseResponse<String>> createApplication(
+            @Valid @RequestBody CompanyRequest companyRequest, RegisterCompanyManagerRequestDto registerCompanyManagerRequestDto) {
+        CompanyResponse application = siteAdminService.createApplication(companyRequest);
+        Long compId = application.id();
+        System.out.println(compId);
+        registerCompanyManagerRequestDto.setCompanyId(compId);
+        RegisterResponseDto registered = userService.registerForManager(registerCompanyManagerRequestDto);
+
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(BaseResponse.<String>builder()
+                        .success(true)
+                        .code(HttpStatus.CREATED.value())
+                        .message("Application created successfully")
+                        .data(application+" | Company Manager Registered: " + registered)
+                        .build());
+    }
+
 
     /**
      * Yeni bir şirket için abonelik (subscription) oluşturur.
@@ -151,15 +189,27 @@ public class AdminController {
      * @return İzin türleri listesi
      */
     @GetMapping("/definitions/leave-types")
-    public ResponseEntity<BaseResponse<List<LeaveType>>> getLeaveTypes(Long id) {
+    public ResponseEntity<BaseResponse<List<LeaveTypeResponseDto>>> getLeaveTypes(@RequestParam(required = false) Long id) {
         List<LeaveType> leaveTypeList = definitionService.findAllLeaveTypes(id);
 
+        List<LeaveTypeResponseDto> dtoList = leaveTypeList.stream()
+                .map(lt -> new LeaveTypeResponseDto(
+                        lt.getId(),
+                        lt.getName(),
+                        lt.getDescription(),
+                        lt.getMaxDays(),
+                        // boolean getter olabilir getIsPaid() veya isPaid(); fallback handled at compile if mismatch
+                        lt.isPaid(),
+                        lt.getCompany() != null ? lt.getCompany().getId() : null
+                ))
+                .toList();
+
         return ResponseEntity.status(HttpStatus.OK)
-                .body(BaseResponse.<List<LeaveType>>builder()
+                .body(BaseResponse.<List<LeaveTypeResponseDto>>builder()
                         .success(true)
                         .code(200)
-                        .message("Company subscription created")
-                        .data(leaveTypeList)
+                        .message("Leave types retrieved successfully")
+                        .data(dtoList)
                         .build());
 
     }
@@ -185,7 +235,7 @@ public class AdminController {
     /**
      * İzin türünü günceller.
      *
-     * @param id Güncellenecek izin türünün ID'si
+     * @param id               Güncellenecek izin türünün ID'si
      * @param leaveTypeRequest Yeni veri
      * @return Güncellenmiş izin türünün ID'si
      */
@@ -197,7 +247,7 @@ public class AdminController {
                 .body(BaseResponse.<Long>builder()
                         .success(true)
                         .code(200)
-                        .message("Leave created")
+                        .message("Leave updated")
                         .data(updatedLeaveType)
                         .build());
     }
@@ -239,9 +289,9 @@ public class AdminController {
     /**
      * Yeni departman oluşturur.
      *
-     * @param companyId Şirket ID'si
+     * @param companyId      Şirket ID'si
      * @param departmentName Departman adı
-     * @param description Açıklama
+     * @param description    Açıklama
      * @return Oluşturulan departman ID'si
      */
     @PostMapping("/definitions/create-departments")
@@ -252,7 +302,7 @@ public class AdminController {
     /**
      * Departmanı günceller.
      *
-     * @param id Departman ID
+     * @param id            Departman ID
      * @param departmentDto Güncel departman verisi
      * @return Güncellenmiş departman DTO
      */
@@ -304,7 +354,7 @@ public class AdminController {
     /**
      * Pozisyonu günceller.
      *
-     * @param id Pozisyon ID
+     * @param id       Pozisyon ID
      * @param position Yeni pozisyon verisi
      * @return Güncellenmiş pozisyon DTO
      */

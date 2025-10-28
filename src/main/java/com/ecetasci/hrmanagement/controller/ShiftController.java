@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import static com.ecetasci.hrmanagement.constant.Endpoints.SHIFT;
+
 /**
  * ShiftController — şirket vardiya (shift) yönetimi.
  *
@@ -24,7 +26,7 @@ import java.util.List;
  * - Çalışanlara vardiya atama
  */
 @RestController
-@RequestMapping("api/company/shifts")
+@RequestMapping(SHIFT)
 @RequiredArgsConstructor
 public class ShiftController {
 

@@ -1,6 +1,7 @@
 package com.ecetasci.hrmanagement.seeder;
 
 import com.ecetasci.hrmanagement.entity.*;
+import com.ecetasci.hrmanagement.enums.CompanyStatus;
 import com.ecetasci.hrmanagement.enums.ExpenseStatus;
 import com.ecetasci.hrmanagement.enums.Role;
 import com.ecetasci.hrmanagement.enums.UserStatus;
@@ -32,7 +33,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final ExpenseRepository expenseRepository;
     private final ExpenseDocumentRepository expenseDocumentRepository;
     private final ExpenseDocumentService expenseDocumentService;
-
+    private final JwtManager jwtManager;
 
 
     @Override
@@ -47,6 +48,9 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .name("System Admin")
                     .email("admin@hrmanagement.com")
                     .password(passwordEncoder.encode("123456"))
+                    .createdAt(LocalDateTime.now())
+                    .emailVerificationToken(jwtManager.generateToken("admin@hrmanagement.com"))
+                    .tokenExpiryDate(LocalDateTime.now().plusDays(300))
                     .role(Role.SITE_ADMIN)
                     .isFirstAdmin(true)
                     .userStatus(UserStatus.ACTIVE)
@@ -59,7 +63,7 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     @Profile("dev") // sadece dev ortamında çalışır
     private void seedDevData() {
-        if (companyRepository.count() ==0) {
+        if (companyRepository.count() == 0) {
             Company company = Company.builder()
                     .companyName("Test ")
                     .companyEmail("info@company.com")
@@ -68,7 +72,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .taxNumber("12345678")
                     .website("www.company.com")
                     .employeeCount(2)
-                    .userStatus(UserStatus.ACTIVE)
+                    .companyStatus(CompanyStatus.APPROVED)
                     .foundedDate(LocalDate.of(2010, 1, 1))
                     .description("This is a test company for development profile")
                     .isActive(true)
@@ -80,13 +84,16 @@ public class DatabaseSeeder implements CommandLineRunner {
             companyRepository.save(company);
 
             User user = User.builder().name("ece").email("ecetasci.iu@gmail.com").password("1234")
-                    .role(Role.COMPANY_ADMIN).userStatus(UserStatus.ACTIVE).isFirstAdmin(false).emailVerificationToken("1234")
-                            .passwordResetToken("1234").tokenExpiryDate(LocalDateTime.of(2027, 10, 14, 19, 45, 0)).createdAt(LocalDateTime.now()).build();
+                    .role(Role.COMPANY_ADMIN)
+                    .userStatus(UserStatus.ACTIVE)
+                    .isFirstAdmin(false)
+                    .emailVerificationToken(jwtManager.generateToken(("ecetasci.iu@gmail.com")))
+                    .passwordResetToken("1234")
+                    .tokenExpiryDate(LocalDateTime.of(2027, 10, 14, 19, 45, 0))
+                    .createdAt(LocalDateTime.now()).build();
 
 
-
-
-                    userRepository.save(user);
+            userRepository.save(user);
             System.out.println("user oluştu");
 
             Employee employee1 = Employee.builder()

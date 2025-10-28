@@ -6,6 +6,7 @@ import com.ecetasci.hrmanagement.entity.User;
 import com.ecetasci.hrmanagement.enums.Role;
 import com.ecetasci.hrmanagement.repository.EmployeeRepository;
 import com.ecetasci.hrmanagement.repository.UserRepository;
+import com.ecetasci.hrmanagement.utility.JwtManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +25,7 @@ public class CompanyManagerService {
     private final EmailService emailService;
     private final CompanyService companyService;
     private final EmployeeService employeeService;
+    private final JwtManager jwtManager;
 
     // Personel ekleme
     public Employee createEmployee(RegisterEmployeeRequestDto dto) {
@@ -33,6 +35,7 @@ public class CompanyManagerService {
         user.setPassword(passwordEncoder.encode(dto.password()));
         user.setRole(Role.EMPLOYEE);
         user.setEmail(dto.email());
+         user.setEmailVerificationToken(jwtManager.generateToken(dto.email()));
         //user.setActive(false);
 
         User savedUser = userRepository.save(user);
@@ -49,8 +52,10 @@ public class CompanyManagerService {
         employee.setPosition(dto.position());
         employee.setEmail(dto.email());
         employee.setUser(savedUser); // ilişkilendirme
+        Employee resp = employeeRepository.save(employee);
 
-        return employeeRepository.save(employee);
+        emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getEmailVerificationToken());
+        return resp;
     }
 
 

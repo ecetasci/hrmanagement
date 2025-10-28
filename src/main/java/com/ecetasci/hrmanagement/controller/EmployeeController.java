@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import static com.ecetasci.hrmanagement.constant.Endpoints.EMPLOYEE;
+
 /**
  * EmployeeController — çalışanlara ait işlemler (izin, zimmet, gider vb.).
  *
@@ -27,7 +29,7 @@ import java.util.List;
  * - Çalışanın giderlerini listeleme
  */
 @RestController
-@RequestMapping("/api/employee")
+@RequestMapping(EMPLOYEE)
 @RequiredArgsConstructor
 public class EmployeeController {
     private final LeaveService leaveService;

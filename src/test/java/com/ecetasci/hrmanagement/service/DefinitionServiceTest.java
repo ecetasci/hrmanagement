@@ -203,8 +203,8 @@ class DefinitionServiceTest {
         List<PositionDto> dtos = service.findAllPositions(1L);
 
         assertEquals(2, dtos.size());
-        // Not: PositionDto ilk alanı companyId ismiyle tanımlı olsa da service id'yi burada geçiriyor
-        assertEquals(1L, dtos.get(0).companyId());
+        // Not: PositionDto ilk alanı id ismiyle tanımlı olsa da service id'yi burada geçiriyor
+        assertEquals(1L, dtos.get(0).id());
         assertEquals("Dev", dtos.get(0).name());
         assertEquals("d", dtos.get(0).description());
     }
@@ -253,7 +253,7 @@ class DefinitionServiceTest {
 
         PositionDto res = service.updatePosition(3L, new PositionDto(1L, "New", "nd"));
 
-        assertEquals(3L, res.companyId()); // service burada id'yi geri döndürüyor
+        assertEquals(3L, res.id()); // service burada id'yi geri döndürüyor
         assertEquals("New", res.name());
         assertEquals("nd", res.description());
         assertEquals("New", pos.getName());

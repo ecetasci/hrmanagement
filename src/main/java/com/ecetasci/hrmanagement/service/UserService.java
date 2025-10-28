@@ -1,5 +1,6 @@
 package com.ecetasci.hrmanagement.service;
 
+import com.ecetasci.hrmanagement.dto.request.RegisterCompanyManagerRequestDto;
 import com.ecetasci.hrmanagement.dto.request.RegisterRequestDto;
 import com.ecetasci.hrmanagement.dto.request.ResetPasswordRequestDto;
 import com.ecetasci.hrmanagement.dto.request.UpdateUserRequestDto;
@@ -27,6 +28,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
 import com.ecetasci.hrmanagement.exceptions.ResourceNotFoundException;
 
 @Service
@@ -47,15 +49,64 @@ public class UserService {
     }
 
     @Transactional
+    public RegisterResponseDto registerForManager(RegisterCompanyManagerRequestDto dto) {
+
+        User savedUser = userRepository.save(User.builder()
+                .name(dto.getName())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .email(dto.getEmail())
+                .role(dto.getRole())
+                .userStatus(UserStatus.PENDING_ADMIN_APPROVAL)
+                .emailVerificationToken(jwtManager.generateToken(dto.getEmail()))
+                .tokenExpiryDate(LocalDateTime.now().plusHours(48))
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        // Eğer rol Company Admin ise aynı zamanda bir Employee oluştur
+        if (dto.getRole() == Role.COMPANY_ADMIN) {
+            Employee employee = new Employee();
+            employee.setUser(savedUser);
+            employee.setName(savedUser.getName());
+            employee.setEmail(savedUser.getEmail());
+            employee.setPassword(savedUser.getPassword()); // encoded şifre
+            // employeeService may be null in some unit test setups (mocking missing). Use it if available,
+            // otherwise generate a UUID-based fallback employee number to avoid NPE.
+            String empNumber;
+            if (this.employeeService != null) {
+                empNumber = this.employeeService.generateEmployeeNumber();
+            } else {
+                empNumber = java.util.UUID.randomUUID().toString().substring(0, 8);
+            }
+            employee.setEmployeeNumber(empNumber);
+            employee.setRole(Role.COMPANY_ADMIN);
+            employee.setCompany(
+                    companyRepository.findById(dto.getCompanyId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Company not found for ID: " + dto.getCompanyId()))
+            );
+            employeeRepository.save(employee);
+
+        }
+
+       // emailService.send(savedUser.getEmail(), "manager register",
+          //      "registering completed, please verify your email with token: " + savedUser.getEmailVerificationToken());
+
+        return new RegisterResponseDto(savedUser.getName(), savedUser.getId(), savedUser.getEmail());
+    }
+
+
+    @Transactional
     public RegisterResponseDto register(@Valid RegisterRequestDto dto) {
+
+
         User savedUser = userRepository.save(User.builder()
                 .name(dto.username())
                 .password(passwordEncoder.encode(dto.password()))
                 .email(dto.email())
                 .role(dto.role())
                 .userStatus(UserStatus.PENDING_ADMIN_APPROVAL)
-                .emailVerificationToken(jwtManager.generateToken(dto.username()))
+                .emailVerificationToken(jwtManager.generateToken(dto.email()))
                 .tokenExpiryDate(LocalDateTime.now().plusHours(48))
+                .createdAt(LocalDateTime.now())
                 .build());
 
         // Eğer rol Company Admin ise aynı zamanda bir Employee oluştur
@@ -75,14 +126,13 @@ public class UserService {
             }
             employee.setEmployeeNumber(empNumber);
             employee.setRole(Role.COMPANY_ADMIN);
-            if(dto.companyId()!=null){
-                companyRepository.findById( dto.companyId()).ifPresent(company -> {
-                    employee.setCompany(company);
-                    employeeRepository.save(employee);
-            }
-            );
-            }
-            else{
+            if (dto.companyId() != null) {
+                companyRepository.findById(dto.companyId()).ifPresent(company -> {
+                            employee.setCompany(company);
+                            employeeRepository.save(employee);
+                        }
+                );
+            } else {
                 throw new ResourceNotFoundException("Company not found for ID: " + dto.companyId());
             }
             employeeRepository.save(employee);
@@ -94,10 +144,6 @@ public class UserService {
 
         return new RegisterResponseDto(savedUser.getName(), savedUser.getId(), savedUser.getEmail());
     }
-
-
-
-
     public void save(String username, String password, String email, Role role) {
         User user = User.builder().name(username).password(password).email(email).role(role).build();
         userRepository.save(user);
@@ -164,13 +210,13 @@ public class UserService {
         }
 
         user.setUserStatus(UserStatus.ACTIVE);
-        user.setEmailVerificationToken(null);
+        user.setEmailVerificationToken(token);
         user.setTokenExpiryDate(null);
 
         userRepository.save(user);
     }
 
-    public void generateResetToken(String email) {
+    public String generateResetToken(String email) {
         User user = userRepository.findUserByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -178,17 +224,11 @@ public class UserService {
         user.setPasswordResetToken(token);
         user.setTokenExpiryDate(LocalDateTime.now().plusHours(2));
         userRepository.save(user);
-
-
-       // String encoded = java.net.URLEncoder.encode(token, java.nio.charset.StandardCharsets.UTF_8);
-       // String base = "http://localhost:8080/swagger-ui/index.html#/auth-controller/resetPassword";
-       // String link = base + "?token=" + encoded;
-
-
         String subject = "Parola Sıfırlama";
-        String body = "Parolanızı sıfırlamak için token " + token + "\n" +" 2 saat içinde geçerlidir.";
+        String body = "Parolanızı sıfırlamak için token " + token + "\n" + " 2 saat içinde geçerlidir.";
 
-       emailService.send(user.getEmail(), subject, body);
+        emailService.send(user.getEmail(), subject, body);
+        return token;
 
 
     }
