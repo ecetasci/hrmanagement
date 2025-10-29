@@ -62,7 +62,7 @@ public class CompanyReviewController {
      * @param rating Puan (ör. 1-5)
      * @return Oluşturulan CompanyReviewResponse içeren BaseResponse
      */
-    @PostMapping("/company/publish-review")
+    @PostMapping("admin/publish")
     public ResponseEntity<BaseResponse<CompanyReviewResponse>> createReview(Long userId, Long companyId, String title,
                                                                             String content, Integer rating) {
         User user = userService.findById(userId).orElseThrow();
@@ -82,7 +82,7 @@ public class CompanyReviewController {
      * @param companyId Silinecek incelemenin ait olduğu şirket ID'si
      * @return Başarı mesajı içeren BaseResponse
      */
-    @DeleteMapping("/company/delete-review")
+    @DeleteMapping("/admin/delete")
     public ResponseEntity<BaseResponse<String>> deleteReview(@RequestParam Long companyId) {
         companyReviewService.deleteWithId(companyId);
         return ResponseEntity.ok(BaseResponse.<String>builder()

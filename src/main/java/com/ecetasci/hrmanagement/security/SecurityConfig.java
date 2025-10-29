@@ -74,12 +74,14 @@ public class SecurityConfig {
 						.requestMatchers(
 								Endpoints.ADMIN + "/**",
 								Endpoints.DASHBOARD + "/admin/**",
-								Endpoints.REVIEWS + "/company/**",
+
 								Endpoints.USER + "/find-all",
 								Endpoints.USER + "/find-by-id/**",
 								Endpoints.USER +"user/find-by-username",
 								Endpoints.USER + "/update-user-profile",
-								Endpoints.USER + "/update-user-password"
+								Endpoints.USER + "/update-user-password",
+								Endpoints.REVIEWS + "/admin/publish",
+								Endpoints.REVIEWS + "/admin/delete"
 						).hasRole("SITE_ADMIN")
 // company admin (manager) endpoints
 						.requestMatchers(
@@ -94,7 +96,8 @@ public class SecurityConfig {
 								Endpoints.USER + "/company-admin/update-user-password",
 								Endpoints.MANAGER + "/employees/**",
 								Endpoints.MANAGER +"/employee-register",
-								Endpoints.ADMIN + "/list-company"
+								Endpoints.ADMIN + "/list-company",
+								Endpoints.REVIEWS + "/company/**"
 						).hasRole("COMPANY_ADMIN")
 // employee endpoints
 						.requestMatchers(
