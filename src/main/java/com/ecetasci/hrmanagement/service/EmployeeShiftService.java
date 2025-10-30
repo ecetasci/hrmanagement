@@ -30,17 +30,17 @@ public class EmployeeShiftService {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
 
-        // 1️⃣ Çalışan aynı gün başka bir vardiyada mı?
+        // 1Çalışan aynı gün başka bir vardiyada mı?
         boolean exists = employeeShiftRepository.existsByEmployeeIdAndAssignedDate(employeeId, assignedDate);
         if (exists) {
             throw new BusinessException("Çalışan bu tarihte zaten bir vardiyada!");
         }
 
-        // 2️⃣ Şirket uyumu kontrolü
+        // Çalışan ve vardiya aynı şirkete mi ait?
         if (!employee.getCompany().getId().equals(shift.getCompany().getId())) {
             throw new BusinessException("Çalışanın şirketi ile vardiya şirketi aynı değil!");
         }
-//localTimela LocaldATEtİME FARK
+
 
         EmployeeShift employeeShift = EmployeeShift.builder()
                 .employee(employee)

@@ -20,8 +20,7 @@ import static com.ecetasci.hrmanagement.constant.Endpoints.SHIFT;
 
 /**
  * ShiftController — şirket vardiya (shift) yönetimi.
- *
- * Sağladığı işlevler:
+  * Sağladığı işlevler:
  * - Vardiya oluşturma, güncelleme, listeleme ve silme
  * - Çalışanlara vardiya atama
  */
@@ -32,7 +31,6 @@ public class ShiftController {
 
     private final ShiftService shiftService;
     private final EmployeeShiftService employeeShiftService;
-    private final ShiftMapper shiftMapper;
 
     /**
      * Yeni bir vardiya oluşturur.
@@ -79,7 +77,7 @@ public class ShiftController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteShift(@PathVariable Long id) {
         shiftService.deleteShift(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 
     /**

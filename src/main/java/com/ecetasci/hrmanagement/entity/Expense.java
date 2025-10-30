@@ -3,7 +3,6 @@ package com.ecetasci.hrmanagement.entity;
 import com.ecetasci.hrmanagement.enums.ExpenseStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.boot.autoconfigure.web.WebProperties;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

@@ -5,7 +5,7 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
+
 
 @Entity
 @Table(name = "employee_shifts")
@@ -30,9 +30,7 @@ public class EmployeeShift {
 
     private LocalDate assignedDate;
 
-    private LocalDate startDate;
+    private LocalDateTime startTime;
 
-    private LocalTime startTime;
-
-    private LocalTime endTime;
+    private LocalDateTime endTime;
 }

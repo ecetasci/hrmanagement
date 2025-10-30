@@ -1,5 +1,5 @@
 package com.ecetasci.hrmanagement.dto.request;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
-public record CalendarShiftDto(LocalDate date, String shiftName) {}
+public record CalendarShiftDto(LocalDateTime date, String shiftName) {}

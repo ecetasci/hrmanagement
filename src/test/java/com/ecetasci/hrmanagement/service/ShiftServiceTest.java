@@ -17,7 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,8 +63,8 @@ class ShiftServiceTest {
 
     @Test
     void createShift_companyNotFound_throws() {
-        ShiftRequestDto dto = new ShiftRequestDto("Sabah", LocalTime.of(9,0), LocalTime.of(17,0), 1L);
-        Shift mapped = new Shift(); mapped.setName("Sabah"); mapped.setStartTime(LocalTime.of(9,0)); mapped.setEndTime(LocalTime.of(17,0));
+        ShiftRequestDto dto = new ShiftRequestDto("Sabah", LocalDateTime.of(2025,1,1,9,0), LocalDateTime.of(2025,1,1,17,0), 1L);
+        Shift mapped = new Shift(); mapped.setName("Sabah"); mapped.setStartTime(LocalDateTime.of(2025,1,1,9,0)); mapped.setEndTime(LocalDateTime.of(2025,1,1,17,0));
         when(shiftMapper.toEntity(dto)).thenReturn(mapped);
         when(companyRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -75,12 +75,12 @@ class ShiftServiceTest {
 
     @Test
     void createShift_overlap_throwsBusinessException() {
-        ShiftRequestDto dto = new ShiftRequestDto("Sabah", LocalTime.of(9,0), LocalTime.of(12,0), 1L);
-        Shift newShift = new Shift(); newShift.setName("Sabah"); newShift.setStartTime(LocalTime.of(9,0)); newShift.setEndTime(LocalTime.of(12,0));
+        ShiftRequestDto dto = new ShiftRequestDto("Sabah", LocalDateTime.of(2025,1,1,9,0), LocalDateTime.of(2025,1,1,12,0), 1L);
+        Shift newShift = new Shift(); newShift.setName("Sabah"); newShift.setStartTime(LocalDateTime.of(2025,1,1,9,0)); newShift.setEndTime(LocalDateTime.of(2025,1,1,12,0));
         when(shiftMapper.toEntity(dto)).thenReturn(newShift);
         when(companyRepository.findById(1L)).thenReturn(Optional.of(company));
         // existing 10:00-11:00 overlaps with 9-12
-        Shift existing = new Shift(); existing.setId(100L); existing.setCompany(company); existing.setStartTime(LocalTime.of(10,0)); existing.setEndTime(LocalTime.of(11,0));
+        Shift existing = new Shift(); existing.setId(100L); existing.setCompany(company); existing.setStartTime(LocalDateTime.of(2025,1,1,10,0)); existing.setEndTime(LocalDateTime.of(2025,1,1,11,0));
         when(shiftRepository.findByCompanyId(1L)).thenReturn(List.of(existing));
 
         BusinessException ex = assertThrows(BusinessException.class, () -> service.createShift(dto));
@@ -90,27 +90,27 @@ class ShiftServiceTest {
 
     @Test
     void createShift_success_persistsAndReturnsDto() {
-        ShiftRequestDto dto = new ShiftRequestDto("Sabah", LocalTime.of(8,0), LocalTime.of(12,0), 1L);
-        Shift newShift = new Shift(); newShift.setName("Sabah"); newShift.setStartTime(LocalTime.of(8,0)); newShift.setEndTime(LocalTime.of(12,0));
+        ShiftRequestDto dto = new ShiftRequestDto("Sabah", LocalDateTime.of(2025,1,1,8,0), LocalDateTime.of(2025,1,1,12,0), 1L);
+        Shift newShift = new Shift(); newShift.setName("Sabah"); newShift.setStartTime(LocalDateTime.of(2025,1,1,8,0)); newShift.setEndTime(LocalDateTime.of(2025,1,1,12,0));
         when(shiftMapper.toEntity(dto)).thenReturn(newShift);
         when(companyRepository.findById(1L)).thenReturn(Optional.of(company));
         when(shiftRepository.findByCompanyId(1L)).thenReturn(List.of());
-        Shift saved = new Shift(); saved.setId(200L); saved.setName("Sabah"); saved.setStartTime(LocalTime.of(8,0)); saved.setEndTime(LocalTime.of(12,0)); saved.setCompany(company);
+        Shift saved = new Shift(); saved.setId(200L); saved.setName("Sabah"); saved.setStartTime(LocalDateTime.of(2025,1,1,8,0)); saved.setEndTime(LocalDateTime.of(2025,1,1,12,0)); saved.setCompany(company);
         when(shiftRepository.save(any(Shift.class))).thenReturn(saved);
-        when(shiftMapper.toDto(saved)).thenReturn(new ShiftResponseDto(200L, "Sabah", LocalTime.of(8,0), LocalTime.of(12,0), 1L, "ACME"));
+        when(shiftMapper.toDto(saved)).thenReturn(new ShiftResponseDto(200L, "Sabah", LocalDateTime.of(2025,1,1,8,0), LocalDateTime.of(2025,1,1,12,0), 1L, "ACME"));
 
         ShiftResponseDto res = service.createShift(dto);
 
         assertEquals(200L, res.id());
         assertEquals("Sabah", res.name());
-        assertEquals(LocalTime.of(8,0), res.startTime());
+        assertEquals(LocalDateTime.of(2025,1,1,8,0), res.startTime());
         verify(shiftRepository).save(any(Shift.class));
     }
 
     @Test
     void updateShift_shiftNotFound_throws() {
         when(shiftRepository.findById(9L)).thenReturn(Optional.empty());
-        ShiftRequestDto dto = new ShiftRequestDto("Akşam", LocalTime.of(13,0), LocalTime.of(18,0), 1L);
+        ShiftRequestDto dto = new ShiftRequestDto("Akşam", LocalDateTime.of(2025,1,1,13,0), LocalDateTime.of(2025,1,1,18,0), 1L);
         ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class, () -> service.updateShift(9L, dto));
         assertEquals("Shift not found", ex.getMessage());
     }
@@ -119,7 +119,7 @@ class ShiftServiceTest {
     void updateShift_companyNotFound_throws() {
         Shift existing = new Shift(); existing.setId(5L); existing.setCompany(company);
         when(shiftRepository.findById(5L)).thenReturn(Optional.of(existing));
-        ShiftRequestDto dto = new ShiftRequestDto("Akşam", LocalTime.of(13,0), LocalTime.of(18,0), 99L);
+        ShiftRequestDto dto = new ShiftRequestDto("Akşam", LocalDateTime.of(2025,1,1,13,0), LocalDateTime.of(2025,1,1,18,0), 99L);
         when(shiftMapper.toEntity(dto)).thenReturn(new Shift());
         when(companyRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -131,12 +131,12 @@ class ShiftServiceTest {
     void updateShift_overlap_throwsBusinessException() {
         Shift existing = new Shift(); existing.setId(5L); existing.setCompany(company);
         when(shiftRepository.findById(5L)).thenReturn(Optional.of(existing));
-        ShiftRequestDto dto = new ShiftRequestDto("Akşam", LocalTime.of(13,0), LocalTime.of(18,0), 1L);
-        Shift updated = new Shift(); updated.setName("Akşam"); updated.setStartTime(LocalTime.of(13,0)); updated.setEndTime(LocalTime.of(18,0));
+        ShiftRequestDto dto = new ShiftRequestDto("Akşam", LocalDateTime.of(2025,1,1,13,0), LocalDateTime.of(2025,1,1,18,0), 1L);
+        Shift updated = new Shift(); updated.setName("Akşam"); updated.setStartTime(LocalDateTime.of(2025,1,1,13,0)); updated.setEndTime(LocalDateTime.of(2025,1,1,18,0));
         when(shiftMapper.toEntity(dto)).thenReturn(updated);
         when(companyRepository.findById(1L)).thenReturn(Optional.of(company));
         // another shift 17:00-19:00 overlaps with 13:00-18:00; id != 5 so not filtered
-        Shift other = new Shift(); other.setId(7L); other.setCompany(company); other.setStartTime(LocalTime.of(17,0)); other.setEndTime(LocalTime.of(19,0));
+        Shift other = new Shift(); other.setId(7L); other.setCompany(company); other.setStartTime(LocalDateTime.of(2025,1,1,17,0)); other.setEndTime(LocalDateTime.of(2025,1,1,19,0));
         when(shiftRepository.findByCompanyId(1L)).thenReturn(List.of(existing, other));
 
         BusinessException ex = assertThrows(BusinessException.class, () -> service.updateShift(5L, dto));
@@ -147,14 +147,14 @@ class ShiftServiceTest {
     void updateShift_success_savesAndReturnsDto() {
         Shift existing = new Shift(); existing.setId(5L); existing.setCompany(company);
         when(shiftRepository.findById(5L)).thenReturn(Optional.of(existing));
-        ShiftRequestDto dto = new ShiftRequestDto("Gece", LocalTime.of(22,0), LocalTime.of(6,0), 1L);
-        Shift updated = new Shift(); updated.setName("Gece"); updated.setStartTime(LocalTime.of(22,0)); updated.setEndTime(LocalTime.of(6,0));
+        ShiftRequestDto dto = new ShiftRequestDto("Gece", LocalDateTime.of(2025,1,1,22,0), LocalDateTime.of(2025,1,2,6,0), 1L);
+        Shift updated = new Shift(); updated.setName("Gece"); updated.setStartTime(LocalDateTime.of(2025,1,1,22,0)); updated.setEndTime(LocalDateTime.of(2025,1,2,6,0));
         when(shiftMapper.toEntity(dto)).thenReturn(updated);
         when(companyRepository.findById(1L)).thenReturn(Optional.of(company));
         when(shiftRepository.findByCompanyId(1L)).thenReturn(List.of(existing)); // only itself
-        Shift saved = new Shift(); saved.setId(5L); saved.setName("Gece"); saved.setStartTime(LocalTime.of(22,0)); saved.setEndTime(LocalTime.of(6,0)); saved.setCompany(company);
+        Shift saved = new Shift(); saved.setId(5L); saved.setName("Gece"); saved.setStartTime(LocalDateTime.of(2025,1,1,22,0)); saved.setEndTime(LocalDateTime.of(2025,1,2,6,0)); saved.setCompany(company);
         when(shiftRepository.save(any(Shift.class))).thenReturn(saved);
-        when(shiftMapper.toDto(saved)).thenReturn(new ShiftResponseDto(5L, "Gece", LocalTime.of(22,0), LocalTime.of(6,0), 1L, "ACME"));
+        when(shiftMapper.toDto(saved)).thenReturn(new ShiftResponseDto(5L, "Gece", LocalDateTime.of(2025,1,1,22,0), LocalDateTime.of(2025,1,2,6,0), 1L, "ACME"));
 
         ShiftResponseDto res = service.updateShift(5L, dto);
 

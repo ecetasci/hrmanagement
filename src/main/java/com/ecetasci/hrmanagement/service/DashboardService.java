@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,7 +50,7 @@ public class DashboardService {
         );
     }
 
-    // 🏢 Company Dashboard
+    // Company Dashboard
     public CompanyDashboardResponse getCompanyDashboard(Long companyId) {
         LocalDate today = LocalDate.now();
         LocalDate upcoming = today.plusDays(7);
@@ -80,18 +81,18 @@ public class DashboardService {
         );
     }
 
-    // 👤 Employee Dashboard
+    // Employee Dashboard
     public EmployeeDashboardResponse getEmployeeDashboard(Long employeeId) {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Personel bulunamadı."));
 
         List<EmployeeShift> shifts = employeeShiftRepository
-                .findByEmployee_IdAndStartDateBetween(employeeId, LocalDate.now(), LocalDate.now().plusDays(7));
+                .findByEmployee_IdAndStartTimeBetween(employeeId, LocalDateTime.now(), LocalDateTime.now().plusDays(7));
 
         String nextShift = "Yaklaşan vardiya yok";
         if (!shifts.isEmpty()) {
             EmployeeShift s = shifts.get(0);
-            nextShift = s.getShift().getName() + " (" + s.getStartDate() + ")";
+            nextShift = s.getShift().getName() + " (" + s.getStartTime() + ")";
         }
 
         List<Expense> expenses = expenseRepository.findTop3ByEmployee_IdOrderByExpenseDateDesc(employeeId);
@@ -108,7 +109,7 @@ public class DashboardService {
         );
     }
 
-    // 📅 Calendar
+    //  Calendar
     public EmployeeCalendarResponse getEmployeeCalendar(Long employeeId, int year, int month) {
         LocalDate start = LocalDate.of(year, month, 1);
         LocalDate end = start.plusMonths(1).minusDays(1);
@@ -124,9 +125,12 @@ public class DashboardService {
         }
 
         List<CalendarShiftDto> shiftList = new ArrayList<>();
-        List<EmployeeShift> shifts = employeeShiftRepository.findByEmployee_IdAndStartDateBetween(employeeId, start, end);
+        //// Fetch shifts between start and end dates
+        LocalDateTime start1 = LocalDateTime.of(start.getYear(), start.getMonth(), start.getDayOfMonth(), 0, 0);
+        LocalDateTime end1 = start.plusMonths(1).minusDays(1).atStartOfDay();
+        List<EmployeeShift> shifts = employeeShiftRepository.findByEmployee_IdAndStartTimeBetween(employeeId, start1, end1);
         for (EmployeeShift s : shifts) {
-            shiftList.add(new CalendarShiftDto(s.getStartDate(), s.getShift().getName()));
+            shiftList.add(new CalendarShiftDto(s.getStartTime(), s.getShift().getName()));
         }
 
         return new EmployeeCalendarResponse(start.getMonth().name(), leaveList, shiftList);

@@ -2,7 +2,7 @@ package com.ecetasci.hrmanagement.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.Fetch;
+
 
 @Entity
 @Table(name = "position")
@@ -15,7 +15,7 @@ public class Position extends BaseEntity {
     @Column(nullable = false, unique = true, length = 100)
     private String name;
 
-    @Column(length = 255)
+    @Column
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)

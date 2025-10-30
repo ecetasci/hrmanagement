@@ -1,7 +1,6 @@
 package com.ecetasci.hrmanagement.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.*;
@@ -14,8 +13,6 @@ import lombok.*;
 @AllArgsConstructor
 @Table
 public class CompanyReview {
-    //company (OneToOne), title, content, rating (1-5),
-    //isPublished
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -23,6 +23,7 @@ public class EmployeeAsset {
     @JoinColumn(name = "asset_id")
     private Asset asset;
 
+
     private LocalDate assignedDate;
 
     @Enumerated(EnumType.STRING)

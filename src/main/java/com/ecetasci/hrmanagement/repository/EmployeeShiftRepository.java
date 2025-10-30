@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface EmployeeShiftRepository extends JpaRepository<EmployeeShift, Long> {
@@ -15,7 +16,7 @@ public interface EmployeeShiftRepository extends JpaRepository<EmployeeShift, Lo
     boolean existsByEmployeeIdAndAssignedDate(Long employeeId, LocalDate assignedDate);
 
     List<EmployeeShift> findByEmployeeId(Long employeeId);
-    List<EmployeeShift> findByEmployee_IdAndStartDateBetween(Long employeeId, LocalDate start, LocalDate end);
+    List<EmployeeShift> findByEmployee_IdAndStartTimeBetween(Long employeeId, LocalDateTime start, LocalDateTime end);
 
     @Modifying
     @Query("delete from EmployeeShift es where es.shift.id = :shiftId")

@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -60,8 +61,16 @@ class EmployeeShiftServiceTest {
         shift.setId(100L);
         shift.setName("Sabah");
         shift.setCompany(companyA);
-        shift.setStartTime(LocalTime.of(9, 0));
-        shift.setEndTime(LocalTime.of(17, 30));
+        shift.setStartTime(LocalDateTime.of(
+                LocalDate.now(),      // bugünün tarihi
+                LocalTime.of(9, 0)    // 09:00
+        ));
+
+        shift.setEndTime(LocalDateTime.of(
+                LocalDate.now(),      // bugünün tarihi
+                LocalTime.of(17, 30)  // 17:30
+        ));
+
     }
 
     // assignShift
@@ -103,8 +112,16 @@ class EmployeeShiftServiceTest {
         otherCompanyShift.setId(200L);
         otherCompanyShift.setName("Gece");
         otherCompanyShift.setCompany(companyB);
-        otherCompanyShift.setStartTime(LocalTime.of(22, 0));
-        otherCompanyShift.setEndTime(LocalTime.of(6, 0));
+        otherCompanyShift.setStartTime(LocalDateTime.of(
+                LocalDate.now(), // bugünün tarihi
+                LocalTime.of(22, 0) // 22:00
+        ));
+
+        otherCompanyShift.setEndTime(LocalDateTime.of(
+                LocalDate.now().plusDays(1), // gece vardiyasıysa ertesi gün
+                LocalTime.of(6, 0) // 06:00
+        ));
+
 
         when(employeeRepository.findById(10L)).thenReturn(Optional.of(employee));
         when(shiftRepository.findById(200L)).thenReturn(Optional.of(otherCompanyShift));

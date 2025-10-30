@@ -4,8 +4,6 @@ import com.ecetasci.hrmanagement.enums.Role;
 import com.ecetasci.hrmanagement.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -46,9 +44,12 @@ public class User extends BaseEntity {
 
     private String passwordResetToken;
 
+
     private LocalDateTime tokenExpiryDate;
 
+
     private LocalDateTime createdAt;
+
 
     private LocalDateTime updatedAt;
 

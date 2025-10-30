@@ -2,6 +2,7 @@ package com.ecetasci.hrmanagement.entity;
 
 
 import com.ecetasci.hrmanagement.enums.SubscriptionType;
+
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -25,7 +26,9 @@ public class CompanySubscription extends BaseEntity {
     private SubscriptionType subscriptionType;
 
     @Column(nullable = false)
+
     private LocalDate startDate;
+
 
     private LocalDate endDate;
 

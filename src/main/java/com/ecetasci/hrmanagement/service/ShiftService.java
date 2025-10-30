@@ -51,7 +51,14 @@ public class ShiftService {
 
         // Kaydet ve DTO olarak geri döndür
         Shift saved = shiftRepository.save(shift);
-        return shiftMapper.toDto(saved);
+
+        ShiftResponseDto dto1 = shiftMapper.toDto(saved);
+       dto1.setCompanyId(company.getId());
+
+        return dto1;
+
+
+
     }
 
     // Vardiya güncelleme
@@ -77,7 +84,7 @@ public class ShiftService {
 
     public void deleteShift(Long id) {
         // varlık yoksa hata at
-        Shift shift = shiftRepository.findById(id)
+      shiftRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Shift not found"));
 
         // 1) Önce EmployeeShift tablosunda ilişkili kayıtları sil (FK kısıtlamasını önlemek için)

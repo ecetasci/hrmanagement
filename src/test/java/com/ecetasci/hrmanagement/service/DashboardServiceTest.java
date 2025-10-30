@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -124,9 +125,9 @@ class DashboardServiceTest {
         // Shifts between now and now+7 (service picks first element's name and startDate)
         Shift shift = new Shift();
         shift.setName("Sabah Vardiyası");
-        EmployeeShift sh1 = new EmployeeShift(); sh1.setShift(shift); sh1.setStartDate(LocalDate.now().plusDays(1));
-        EmployeeShift sh2 = new EmployeeShift(); sh2.setShift(shift); sh2.setStartDate(LocalDate.now().plusDays(2));
-        when(employeeShiftRepository.findByEmployee_IdAndStartDateBetween(eq(10L), any(LocalDate.class), any(LocalDate.class)))
+        EmployeeShift sh1 = new EmployeeShift(); sh1.setShift(shift); sh1.setStartTime(LocalDateTime.now().plusDays(1));
+        EmployeeShift sh2 = new EmployeeShift(); sh2.setShift(shift); sh2.setStartTime(LocalDateTime.now().plusDays(2));
+        when(employeeShiftRepository.findByEmployee_IdAndStartTimeBetween(eq(10L), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(List.of(sh1, sh2));
 
         Expense ex1 = Expense.builder().description("Laptop Case").amount(BigDecimal.TEN).expenseDate(LocalDate.now()).status(ExpenseStatus.APPROVED).employee(employee).build();
@@ -138,14 +139,14 @@ class DashboardServiceTest {
         assertEquals("John Doe", res.employeeName());
         assertEquals(12, res.leaveBalance());
         assertTrue(res.upcomingShift().contains("Sabah Vardiyası"));
-        assertTrue(res.upcomingShift().contains(sh1.getStartDate().toString()));
+        assertTrue(res.upcomingShift().contains(sh1.getStartTime().toString()));
         assertEquals(List.of("Laptop Case", "Taxi"), res.recentExpenses());
     }
 
     @Test
     void getEmployeeDashboard_noUpcomingShift_messageShown() {
         when(employeeRepository.findById(10L)).thenReturn(Optional.of(employee));
-        when(employeeShiftRepository.findByEmployee_IdAndStartDateBetween(eq(10L), any(LocalDate.class), any(LocalDate.class)))
+        when(employeeShiftRepository.findByEmployee_IdAndStartTimeBetween(eq(10L), any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(List.of());
         when(expenseRepository.findTop3ByEmployee_IdOrderByExpenseDateDesc(10L)).thenReturn(List.of());
 
@@ -191,9 +192,9 @@ class DashboardServiceTest {
 
         // Shifts in range
         Shift shift = new Shift(); shift.setName("Gece");
-        EmployeeShift s1 = new EmployeeShift(); s1.setStartDate(start.plusDays(3)); s1.setShift(shift);
-        EmployeeShift s2 = new EmployeeShift(); s2.setStartDate(end); s2.setShift(shift);
-        when(employeeShiftRepository.findByEmployee_IdAndStartDateBetween(empId, start, end))
+        EmployeeShift s1 = new EmployeeShift(); s1.setStartTime(start.plusDays(3).atStartOfDay()); s1.setShift(shift);
+        EmployeeShift s2 = new EmployeeShift(); s2.setStartTime(end.atStartOfDay()); s2.setShift(shift);
+        when(employeeShiftRepository.findByEmployee_IdAndStartTimeBetween(empId, start.atStartOfDay(), end.atStartOfDay()))
                 .thenReturn(List.of(s1, s2));
 
         EmployeeCalendarResponse res = service.getEmployeeCalendar(empId, year, month);

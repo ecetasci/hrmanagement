@@ -1,9 +1,10 @@
 package com.ecetasci.hrmanagement.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -21,9 +22,11 @@ public class Shift {
 
     private String name;
 
-    private LocalTime startTime;
+   @Schema(example = "08:00:00")
+   private LocalDateTime startTime;
 
-    private LocalTime endTime;
+    @Schema(example = "08:00:00")
+    private LocalDateTime endTime;
 
     @ManyToOne
     @JoinColumn(name = "company_id", nullable = false)

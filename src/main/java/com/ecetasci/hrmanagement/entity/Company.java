@@ -1,7 +1,6 @@
 package com.ecetasci.hrmanagement.entity;
 
 import com.ecetasci.hrmanagement.enums.CompanyStatus;
-import com.ecetasci.hrmanagement.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 

@@ -2,7 +2,6 @@ package com.ecetasci.hrmanagement.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalTime;
 
 @Entity
@@ -20,7 +19,9 @@ public class Break {
 
     private String name;
 
+
     private LocalTime startTime;
+
 
     private LocalTime endTime;
 
