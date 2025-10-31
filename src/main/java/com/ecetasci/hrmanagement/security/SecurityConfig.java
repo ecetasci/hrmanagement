@@ -1,7 +1,6 @@
 package com.ecetasci.hrmanagement.security;
 
 import com.ecetasci.hrmanagement.constant.Endpoints;
-import com.ecetasci.hrmanagement.security.JwtAuhenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -70,6 +69,11 @@ public class SecurityConfig {
 
 						).permitAll()
 
+								.requestMatchers(
+										Endpoints.EXPENSES + "/employee/create-expense",
+										Endpoints.EXPENSES + "/employee/expenses")
+								.hasAnyRole("COMPANY_ADMIN", "EMPLOYEE")
+
 // site admin endpoints
 						.requestMatchers(
 								Endpoints.ADMIN + "/**",
@@ -82,6 +86,8 @@ public class SecurityConfig {
 								Endpoints.REVIEWS + "/admin/publish",
 								Endpoints.REVIEWS + "/admin/delete"
 						).hasRole("SITE_ADMIN")
+
+
 // company admin (manager) endpoints
 						.requestMatchers(
 								//Endpoints.MANAGER + "/**",
@@ -100,6 +106,9 @@ public class SecurityConfig {
 								Endpoints.ASSETS + "/**",
 								Endpoints.DASHBOARD + "/manager/**",
 								Endpoints.EXPENSES + "/manager/**",
+								Endpoints.EXPENSES + "/company/expenses/{id}/approve",
+								Endpoints.EXPENSES + "/{id}/reject",
+								Endpoints.EXPENSES + "/{id}/update-rejected",
 								//Endpoints.MANAGER+ "/leaves/**",
 								Endpoints.MANAGER+ "/leaves/{id}/approve",
 								Endpoints.MANAGER+ "/assets/**",
@@ -112,7 +121,7 @@ public class SecurityConfig {
 						.requestMatchers(
 								Endpoints.EMPLOYEE + "/**",
 								Endpoints.DASHBOARD + "/employee/**",
-								Endpoints.EXPENSES + "/employee/**",
+								//Endpoints.EXPENSES + "/employee/**",
 								Endpoints.SHIFT + "/**"
 
 						).hasRole("EMPLOYEE")

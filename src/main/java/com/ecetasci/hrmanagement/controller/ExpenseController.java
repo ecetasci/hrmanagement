@@ -44,16 +44,12 @@ public class ExpenseController {
 
 
     /**
-     * Belirtilen çalışanın giderlerini listeler.
-     *
-     * İstek yapan kullanıcının employee id'si (Authorization header'dan) kullanılarak
-     * kendi giderleri döndürülür. Eğer token geçersizse veya kullanıcı bulunamazsa 403 döner.
-     *
-     * @return ExpenseResponseDto listesi
+     * Çağıran kullanıcının (hem normal employee hem de company admin) kendi giderlerini döndürür.
+     * Başka bir employee'nin giderlerine erişim bu endpoint üzerinden sağlanmaz.
      */
     @GetMapping("/employee/expenses")
     public ResponseEntity<com.ecetasci.hrmanagement.dto.response.BaseResponse<List<ExpenseResponseDto>>> getEmployeeExpenses(HttpServletRequest request) {
-        Long callerEmployeeId = resolveCallerEmployeeId(request);// helper method
+        Long callerEmployeeId = resolveCallerEmployeeId(request);
         if (callerEmployeeId == null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(com.ecetasci.hrmanagement.dto.response.BaseResponse.<List<ExpenseResponseDto>>builder()
@@ -113,15 +109,30 @@ public class ExpenseController {
     /**
      * Yeni gider oluşturur.
      *
-     * @param employeeId Çalışan ID'si
      * @param dto Gider oluşturma DTO
      * @return Oluşturulan gider DTO
      */
     @PostMapping("/employee/create-expense")
-    public ResponseEntity<ExpenseResponseDto> createExpense(@RequestParam Long employeeId,
-                                                            @Valid @RequestBody ExpenseCreateRequest dto) {
-        ExpenseResponseDto response = expenseService.createExpense(employeeId, dto);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<com.ecetasci.hrmanagement.dto.response.BaseResponse<ExpenseResponseDto>> createExpense(HttpServletRequest request,
+                                                                                                                   @Valid @RequestBody ExpenseCreateRequest dto) {
+        Long callerEmployeeId = resolveCallerEmployeeId(request);
+        if (callerEmployeeId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(com.ecetasci.hrmanagement.dto.response.BaseResponse.<ExpenseResponseDto>builder()
+                            .success(false)
+                            .code(403)
+                            .message("Access denied")
+                            .build());
+        }
+
+        ExpenseResponseDto response = expenseService.createExpense(callerEmployeeId, dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(com.ecetasci.hrmanagement.dto.response.BaseResponse.<ExpenseResponseDto>builder()
+                        .success(true)
+                        .code(201)
+                        .message("Expense created")
+                        .data(response)
+                        .build());
     }
 
     /**
@@ -168,7 +179,7 @@ public class ExpenseController {
 
 
     /**
-     * Şirkete ait giderleri listeler.
+     * Şirkete ait giderleri listeler. Sadece şirket yöneticileri erişebilir.
      *
      * @return ExpenseResponseDto listesi
      */

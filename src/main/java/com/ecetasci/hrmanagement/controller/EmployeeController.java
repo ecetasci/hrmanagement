@@ -199,6 +199,7 @@ public class EmployeeController {
      *
      * @return Gider DTO listesi wrapped ile BaseResponse
      */
+    @Deprecated
     @GetMapping("/expenses")
     public ResponseEntity<BaseResponse<List<ExpenseResponseDto>>> getExpenses(
             HttpServletRequest request) {
