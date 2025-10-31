@@ -44,6 +44,7 @@ public class Endpoints {
     public static final String LEAVE_TYPES = "/definitions/leave-types";
     public static final String CREATE_LEAVE_TYPES = "/definitions/create-leave-types";
     public static final String DEPARTMENTS = "/definitions/departments";
+    public static final String ASSETS = "/assets";
 
     private Endpoints() { /* prevent instantiation */ }
 }

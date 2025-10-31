@@ -14,11 +14,19 @@ import com.ecetasci.hrmanagement.repository.CompanyRepository;
 import com.ecetasci.hrmanagement.repository.EmployeeAssetRepository;
 import com.ecetasci.hrmanagement.repository.EmployeeRepository;
 import com.ecetasci.hrmanagement.exceptions.ResourceNotFoundException;
+import com.ecetasci.hrmanagement.repository.UserRepository;
+import com.ecetasci.hrmanagement.utility.JwtManager;
+import jakarta.servlet.UnavailableException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import jakarta.servlet.http.HttpServletRequest;
+import com.ecetasci.hrmanagement.exceptions.UnauthorizedException;
+import com.ecetasci.hrmanagement.exceptions.ForbiddenException;
+
+import static com.ecetasci.hrmanagement.enums.EmployeeAssetStatus.CONFIRMED;
 
 @Service
 @RequiredArgsConstructor
@@ -27,12 +35,47 @@ public class AssetService {
     private final EmployeeRepository employeeRepository;
     private final EmployeeAssetRepository employeeAssetRepository;
     private final CompanyRepository companyRepository;
+    private final UserRepository userRepository;
+    private final JwtManager jwtManager;
 
     // Tüm zimmetler
     public List<AssetResponseDto> getAllAssets() {
         return assetRepository.findAll().stream()
                 .map(this::toAssetDto)
                 .toList();
+    }
+
+    // Şirkete ait zimmetleri getirir
+    public List<AssetResponseDto> getAssetsByCompanyId(Long companyId) {
+        return assetRepository.findAllByCompanyId(companyId).stream()
+                .map(this::toAssetDto)
+                .toList();
+    }
+
+    // Çağıranın Authorization header'ından companyId çözümler ve ilgili asset'leri döner
+    public List<AssetResponseDto> getAssetsForCaller(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth == null || !auth.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Missing or malformed Authorization header");
+        }
+        String token = auth.substring(7);
+        String username;
+        try {
+            username = jwtManager.extractUsername(token);
+        } catch (Exception e) {
+            throw new UnauthorizedException("Invalid token");
+        }
+        if (username == null) throw new UnauthorizedException("Unauthorized");
+
+        var userOpt = userRepository.findUserByEmail(username);
+        if (userOpt.isEmpty()) throw new UnauthorizedException("User not found");
+        var user = userOpt.get();
+
+        var empOpt = employeeRepository.findByUserId(user.getId());
+        Long companyId = empOpt.map(emp -> emp.getCompany() != null ? emp.getCompany().getId() : null).orElse(null);
+        if (companyId == null) throw new ForbiddenException("Caller has no company");
+
+        return getAssetsByCompanyId(companyId);
     }
 
     // Zimmet oluşturma (serial number unique kontrolü)
@@ -74,7 +117,7 @@ public class AssetService {
                 .orElseThrow(() -> new ResourceNotFoundException("Asset not found"));
         // Aktif zimmet varsa silinemez
         boolean hasActive = employeeAssetRepository.existsByAssetAndStatusIn(
-                asset, List.of(EmployeeAssetStatus.ASSIGNED, EmployeeAssetStatus.CONFIRMED));
+                asset, List.of(EmployeeAssetStatus.ASSIGNED, CONFIRMED));
         if (hasActive) {
             throw new IllegalStateException("Asset is currently assigned and cannot be deleted!");
         }
@@ -89,7 +132,7 @@ public class AssetService {
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
         // Aynı zimmet başka birine atanmış mı?
         boolean alreadyAssigned = employeeAssetRepository.existsByAssetAndStatusIn(
-                asset, List.of(EmployeeAssetStatus.ASSIGNED, EmployeeAssetStatus.CONFIRMED));
+                asset, List.of(EmployeeAssetStatus.ASSIGNED, CONFIRMED));
         if (alreadyAssigned) {
             throw new IllegalStateException("Asset is already assigned to another employee!");
         }
@@ -121,21 +164,32 @@ public class AssetService {
         if (ea.getStatus() != EmployeeAssetStatus.ASSIGNED) {
             throw new IllegalStateException("Only ASSIGNED assets can be confirmed!");
         }
-        ea.setStatus(EmployeeAssetStatus.CONFIRMED);
+        ea.setStatus(CONFIRMED);
         ea.setEmployeeNote(null);
         return toEmployeeAssetDto(employeeAssetRepository.save(ea));
     }
 
     // Zimmeti reddet (not zorunlu)
     public EmployeeAssetResponseDto rejectEmployeeAsset(Long assignmentId, RejectAssetRequestDto dto) {
-        EmployeeAsset ea = employeeAssetRepository.findById(assignmentId)
+        EmployeeAsset asset = employeeAssetRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
-        if (ea.getStatus() != EmployeeAssetStatus.ASSIGNED) {
+        if(asset.getStatus().equals(CONFIRMED)){
+            throw new RuntimeException("Confirmed assets cannot be rejected!");
+        }
+        if (asset.getStatus() != EmployeeAssetStatus.ASSIGNED ) {
             throw new IllegalStateException("Only ASSIGNED assets can be rejected!");
         }
-        ea.setStatus(EmployeeAssetStatus.REJECTED);
-        ea.setEmployeeNote(dto.getEmployeeNote());
-        return toEmployeeAssetDto(employeeAssetRepository.save(ea));
+        asset.setStatus(EmployeeAssetStatus.REJECTED);
+        asset.setEmployeeNote(dto.getEmployeeNote());
+        return toEmployeeAssetDto(employeeAssetRepository.save(asset));
+    }
+
+    // Yeni: bir assignment'ın belirli bir employee'ye ait olup olmadığını kontrol eder
+    public boolean assignmentBelongsToEmployee(Long assignmentId, Long employeeId) {
+        EmployeeAsset ea = employeeAssetRepository.findById(assignmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
+        var emp = ea.getEmployee();
+        return emp != null && emp.getId() != null && emp.getId().equals(employeeId);
     }
 
     // ------ DTO mapping yardımcı metodları ------
@@ -162,5 +216,12 @@ public class AssetService {
                 .status(ea.getStatus())
                 .employeeNote(ea.getEmployeeNote())
                 .build();
+    }
+
+    public boolean assetBelongsToCompany(Long id, Long callerCompanyId) {
+        Asset asset = assetRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Asset not found"));
+
+        return asset.getCompany().getId().equals(callerCompanyId);
     }
 }

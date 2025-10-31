@@ -3,7 +3,6 @@ package com.ecetasci.hrmanagement.service;
 import com.ecetasci.hrmanagement.dto.request.LeaveRequestDto;
 import com.ecetasci.hrmanagement.entity.Employee;
 import com.ecetasci.hrmanagement.entity.LeaveRequest;
-import com.ecetasci.hrmanagement.entity.LeaveType;
 import com.ecetasci.hrmanagement.enums.LeaveStatus;
 import com.ecetasci.hrmanagement.mapper.LeaveMapper;
 import com.ecetasci.hrmanagement.repository.EmployeeRepository;
@@ -34,8 +33,11 @@ public class LeaveService {
         // Map DTO -> entity
         LeaveRequest entity = leaveMapper.toEntity(leaveRequestDto);
 
-        Employee employee = employeeRepository.findByEmployeeNumber(leaveRequestDto.employeeNumber())
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + leaveRequestDto.employeeNumber()));
+        String empNum = leaveRequestDto.employeeNumber() != null ? leaveRequestDto.employeeNumber().trim() : null;
+        // Try exact lookup first (keeps existing tests working), then fallback to case-insensitive lookup
+        Employee employee = employeeRepository.findByEmployeeNumber(empNum)
+                .or(() -> employeeRepository.findEmployeeByEmployeeNumberIgnoreCase(empNum))
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + empNum));
         var leaveType = leaveTypeRepository.findById(leaveRequestDto.leaveTypeId())
                 .orElseThrow(() -> new IllegalArgumentException("LeaveType not found: " + leaveRequestDto.leaveTypeId()));
 
@@ -79,8 +81,10 @@ public class LeaveService {
 
     @Transactional
     public void approveLeaveRequest(String employeeNumber, LocalDate startDate, String managerEmployeeNumber) {
-        Employee employee = employeeRepository.findByEmployeeNumber(employeeNumber)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + employeeNumber));
+        String empNum = employeeNumber != null ? employeeNumber.trim() : null;
+        Employee employee = employeeRepository.findByEmployeeNumber(empNum)
+                .or(() -> employeeRepository.findEmployeeByEmployeeNumberIgnoreCase(empNum))
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + empNum));
 
         LeaveRequest request = employee.getLeaveRequests().stream()
                 .filter(r -> startDate.equals(r.getStartDate()))
@@ -94,8 +98,10 @@ public class LeaveService {
             throw new IllegalStateException("Leave request already rejected");
         }
 
-        Employee manager = employeeRepository.findByEmployeeNumber(managerEmployeeNumber)
-                .orElseThrow(() -> new ResourceNotFoundException("Manager not found: " + managerEmployeeNumber));
+        String mgrNum = managerEmployeeNumber != null ? managerEmployeeNumber.trim() : null;
+        Employee manager = employeeRepository.findByEmployeeNumber(mgrNum)
+                .or(() -> employeeRepository.findEmployeeByEmployeeNumberIgnoreCase(mgrNum))
+                .orElseThrow(() -> new ResourceNotFoundException("Manager not found: " + mgrNum));
 
         Integer totalDays = request.getTotalDays();
         if (totalDays == null) {
@@ -104,6 +110,12 @@ public class LeaveService {
         if (employee.getLeaveBalance() < totalDays) {
             throw new IllegalStateException("Yetersiz bakiye!");
         }
+
+        // Opsiyonel: manager'ın gerçekten aynı şirkette olup olmadığını employeeNumber stringleri üzerinden doğrula
+        // Eğer gerekli ise şunu kullanabiliriz (isteğe bağlı):
+        // if (manager.getCompany() == null || employee.getCompany() == null || !Objects.equals(manager.getCompany().getId(), employee.getCompany().getId())) {
+        //     throw new IllegalStateException("Manager and employee are not in the same company");
+        // }
 
         request.setStatus(LeaveStatus.APPROVED);
         request.setApprovedBy(manager);
@@ -118,11 +130,15 @@ public class LeaveService {
 
     @Transactional
     public void rejectLeaveRequestByEmployeeNumber(String employeeNumber, String managerEmployeeNumber, String managerNote) {
-        Employee employee = employeeRepository.findByEmployeeNumber(employeeNumber)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + employeeNumber));
+        String empNum = employeeNumber != null ? employeeNumber.trim() : null;
+        Employee employee = employeeRepository.findByEmployeeNumber(empNum)
+                .or(() -> employeeRepository.findEmployeeByEmployeeNumberIgnoreCase(empNum))
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found: " + empNum));
 
-        Employee managerEmployee = employeeRepository.findByEmployeeNumber(managerEmployeeNumber)
-                .orElseThrow(() -> new ResourceNotFoundException("Manager not found: " + managerEmployeeNumber));
+        String mgrNum = managerEmployeeNumber != null ? managerEmployeeNumber.trim() : null;
+        Employee managerEmployee = employeeRepository.findByEmployeeNumber(mgrNum)
+                .or(() -> employeeRepository.findEmployeeByEmployeeNumberIgnoreCase(mgrNum))
+                .orElseThrow(() -> new ResourceNotFoundException("Manager not found: " + mgrNum));
 
         LeaveRequest request = employee.getLeaveRequests().stream()
                 .filter(r -> r.getStatus() == LeaveStatus.PENDING) // öncelikle beklemedeki talebi hedefle

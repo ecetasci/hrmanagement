@@ -88,7 +88,7 @@ public class EmployeeService {
             String candidate = String.format("%c%06d", prefix, number);
 
             // repository'de var mı kontrol et (findByEmployeeNumber var varsayımıyla)
-            if (employeeRepository.findByEmployeeNumber(candidate).isEmpty()) {
+            if (employeeRepository.findEmployeeByEmployeeNumber(candidate).isEmpty()) {
                 return candidate;
             }
         }

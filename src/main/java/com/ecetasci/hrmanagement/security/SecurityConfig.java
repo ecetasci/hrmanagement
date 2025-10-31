@@ -74,7 +74,6 @@ public class SecurityConfig {
 						.requestMatchers(
 								Endpoints.ADMIN + "/**",
 								Endpoints.DASHBOARD + "/admin/**",
-
 								Endpoints.USER + "/find-all",
 								Endpoints.USER + "/find-by-id/**",
 								Endpoints.USER +"user/find-by-username",
@@ -97,7 +96,17 @@ public class SecurityConfig {
 								Endpoints.MANAGER + "/employees/**",
 								Endpoints.MANAGER +"/employee-register",
 								Endpoints.ADMIN + "/list-company",
-								Endpoints.REVIEWS + "/company/**"
+								Endpoints.REVIEWS + "/company/**",
+								Endpoints.ASSETS + "/**",
+								Endpoints.DASHBOARD + "/manager/**",
+								Endpoints.EXPENSES + "/manager/**",
+								//Endpoints.MANAGER+ "/leaves/**",
+								Endpoints.MANAGER+ "/leaves/{id}/approve",
+								Endpoints.MANAGER+ "/assets/**",
+								Endpoints.MANAGER + "/expenses/**"
+
+
+
 						).hasRole("COMPANY_ADMIN")
 // employee endpoints
 						.requestMatchers(

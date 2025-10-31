@@ -12,9 +12,16 @@ import java.util.Optional;
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
+    Optional<Employee> findEmployeeByEmployeeNumber(String employeeNumber);
+
+    // Case-insensitive lookup for employeeNumber (ignores letter case differences)
+    Optional<Employee> findEmployeeByEmployeeNumberIgnoreCase(String employeeNumber);
+
+    // Backwards-compatible alias used in tests and older code
     Optional<Employee> findByEmployeeNumber(String employeeNumber);
 
     Page<Employee> findAllByCompanyId(Long companyId, Pageable pageable);
+    List<Employee> findAllByCompanyId(Long companyId);
 
     Optional<List<Employee>> findEmployeesByCompanyCompanyName(String companyName);
 

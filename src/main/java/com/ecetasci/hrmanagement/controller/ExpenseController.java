@@ -7,9 +7,11 @@ import com.ecetasci.hrmanagement.entity.ExpenseDocument;
 import com.ecetasci.hrmanagement.service.ExpenseDocumentService;
 import com.ecetasci.hrmanagement.service.ExpenseService;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,17 +38,75 @@ public class ExpenseController {
 
     private final ExpenseService expenseService;
     private final ExpenseDocumentService expenseDocumentService;
+    private final com.ecetasci.hrmanagement.utility.JwtManager jwtManager;
+    private final com.ecetasci.hrmanagement.repository.UserRepository userRepository;
+    private final com.ecetasci.hrmanagement.repository.EmployeeRepository employeeRepository;
 
 
     /**
      * Belirtilen çalışanın giderlerini listeler.
      *
-     * @param employeeId Çalışan ID'si
+     * İstek yapan kullanıcının employee id'si (Authorization header'dan) kullanılarak
+     * kendi giderleri döndürülür. Eğer token geçersizse veya kullanıcı bulunamazsa 403 döner.
+     *
      * @return ExpenseResponseDto listesi
      */
     @GetMapping("/employee/expenses")
-    public List<ExpenseResponseDto> getEmployeeExpenses(@RequestParam Long employeeId) {
-        return expenseService.getEmployeeExpenses(employeeId);
+    public ResponseEntity<com.ecetasci.hrmanagement.dto.response.BaseResponse<List<ExpenseResponseDto>>> getEmployeeExpenses(HttpServletRequest request) {
+        Long callerEmployeeId = resolveCallerEmployeeId(request);// helper method
+        if (callerEmployeeId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(com.ecetasci.hrmanagement.dto.response.BaseResponse.<List<ExpenseResponseDto>>builder()
+                            .success(false)
+                            .code(403)
+                            .message("Access denied")
+                            .build());
+        }
+
+        List<ExpenseResponseDto> employeeExpenses = expenseService.getEmployeeExpenses(callerEmployeeId);
+        return ResponseEntity.ok(com.ecetasci.hrmanagement.dto.response.BaseResponse.<List<ExpenseResponseDto>>builder()
+                .success(true)
+                .code(200)
+                .message("Employee expenses retrieved")
+                .data(employeeExpenses)
+                .build());
+    }
+
+    // Resolve caller employee id from Authorization header using JwtManager and repositories
+    private Long resolveCallerEmployeeId(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth == null) {
+            return null;
+        }
+        if (!auth.startsWith("Bearer ")) {
+            return null;
+        }
+
+        String token = auth.substring(7);
+        String username;
+        try {
+            username = jwtManager.extractUsername(token);
+        } catch (Exception e) {
+            return null;
+        }
+
+        if (username == null) {
+            return null;
+        }
+
+        java.util.Optional<com.ecetasci.hrmanagement.entity.User> userOpt = userRepository.findUserByEmail(username);
+        if (userOpt.isEmpty()) {
+            return null;
+        }
+
+        com.ecetasci.hrmanagement.entity.User user = userOpt.get();
+        java.util.Optional<com.ecetasci.hrmanagement.entity.Employee> empOpt = employeeRepository.findByUserId(user.getId());
+        if (empOpt.isEmpty()) {
+            return null;
+        }
+
+        com.ecetasci.hrmanagement.entity.Employee emp = empOpt.get();
+        return emp.getId();
     }
 
 
@@ -79,8 +139,7 @@ public class ExpenseController {
 
         ExpenseDocument doc = expenseDocumentService.uploadDocument(expenseId, file);
 
-        //  Manuel DTO mapping
-        ExpenseDocumentResponseDto response = new ExpenseDocumentResponseDto(
+             ExpenseDocumentResponseDto response = new ExpenseDocumentResponseDto(
                 doc.getId(),
                 doc.getFileName(),
                 doc.getFilePath(),
@@ -99,7 +158,7 @@ public class ExpenseController {
      * @return Dosya kaynağı (download)
      */
     @GetMapping("/employee/expenses/documents/{docId}")
-    public ResponseEntity<Resource> downloadDocument(@PathVariable Long docId) throws IOException {
+    public ResponseEntity<Resource> downloadDocument(@PathVariable Long docId) {
         Resource resource = expenseDocumentService.downloadDocument(docId);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
@@ -111,12 +170,70 @@ public class ExpenseController {
     /**
      * Şirkete ait giderleri listeler.
      *
-     * @param companyId Şirket ID'si
      * @return ExpenseResponseDto listesi
      */
     @GetMapping("/company/expenses")
-    public List<ExpenseResponseDto> getCompanyExpenses(@RequestParam Long companyId) {
-        return expenseService.getCompanyExpenses(companyId);
+    public ResponseEntity<com.ecetasci.hrmanagement.dto.response.BaseResponse<List<ExpenseResponseDto>>> getCompanyExpenses(HttpServletRequest request) {
+        Long callerCompanyId = resolveCallerCompanyId(request);
+        if (callerCompanyId == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(com.ecetasci.hrmanagement.dto.response.BaseResponse.<List<ExpenseResponseDto>>builder()
+                            .success(false)
+                            .code(403)
+                            .message("Access denied")
+                            .build());
+        }
+
+        List<ExpenseResponseDto> expenses = expenseService.getCompanyExpenses(callerCompanyId);
+        return ResponseEntity.ok(com.ecetasci.hrmanagement.dto.response.BaseResponse.<List<ExpenseResponseDto>>builder()
+                .success(true)
+                .code(200)
+                .message("Company expenses retrieved")
+                .data(expenses)
+                .build());
+    }
+
+    // Resolve caller company id from Authorization header using JwtManager and repositories
+    private Long resolveCallerCompanyId(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization"); // Bearer token
+        if (auth == null) {
+            return null; // no auth header
+        }
+        if (!auth.startsWith("Bearer ")) {
+            return null; // invalid format
+        }
+
+        String token = auth.substring(7); // extract token after 'Bearer '
+
+        String username;
+        try {
+            username = jwtManager.extractUsername(token);
+        } catch (Exception e) {
+            // token parsing failed
+            return null;
+        }
+
+        if (username == null) {
+            return null;
+        }
+
+        java.util.Optional<com.ecetasci.hrmanagement.entity.User> userOpt = userRepository.findUserByEmail(username);
+        if (userOpt.isEmpty()) {
+            return null; // no user found for username
+        }
+
+        com.ecetasci.hrmanagement.entity.User user = userOpt.get();
+        java.util.Optional<com.ecetasci.hrmanagement.entity.Employee> empOpt = employeeRepository.findByUserId(user.getId());
+        if (empOpt.isEmpty()) {
+            return null; // no employee associated with this user
+        }
+
+        com.ecetasci.hrmanagement.entity.Employee emp = empOpt.get();
+        if (emp.getCompany() == null) {
+            return null; // employee has no company
+        }
+
+        return emp.getCompany().getId();
     }
 
 
@@ -140,7 +257,7 @@ public class ExpenseController {
      * @param dto Yeni gider verisi
      * @return Güncellenmiş gider DTO
      */
-    @PutMapping("/expenses/{id}/update-rejected")
+    @PutMapping("/{id}/update-rejected")
     public ResponseEntity<ExpenseResponseDto> updateRejectedExpense(@PathVariable Long id,
                                                                     @RequestBody ExpenseCreateRequest dto) {
         return ResponseEntity.ok(expenseService.updateRejectedExpense(id, dto));
@@ -152,7 +269,7 @@ public class ExpenseController {
      * @param id Gider ID'si
      * @return Başarı mesajı
      */
-    @PutMapping("/expenses/{id}/reject")
+    @PutMapping("/{id}/reject")
     public ResponseEntity<String> rejectExpense(@PathVariable Long id) {
         expenseService.rejectExpense(id);
         return ResponseEntity.ok("Expense rejected successfully");

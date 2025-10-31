@@ -54,12 +54,15 @@ public class CompanyManagerService {
         employee.setUser(savedUser); // ilişkilendirme
         Employee resp = employeeRepository.save(employee);
 
-        emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getEmailVerificationToken());
+        // Only send verification email if a token was generated
+        if (savedUser.getEmailVerificationToken() != null) {
+            emailService.sendVerificationEmail(savedUser.getEmail(), savedUser.getEmailVerificationToken());
+        }
         return resp;
     }
 
 
-    // Listeleme (şirket bazlı izolasyon)
+    // Listeleme (şirket bazlı )
     public Page<Employee> findAllByCompanyId(Long companyId, Pageable pageable) {
         return employeeRepository.findAllByCompanyId(companyId, pageable);
     }
@@ -87,32 +90,34 @@ public class CompanyManagerService {
 
 
     public void deleteEmployee(Long id) {
-        Employee emp = employeeRepository.findById(id)
+        Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
 
-        // önce User’ı da silmek istersen:
-        if (emp.getUser() != null) {
-            userRepository.delete(emp.getUser());
+        // önce User’ı da silmek için
+        if (employee.getUser() != null) {
+            userRepository.delete(employee.getUser());
         }
 
-        employeeRepository.delete(emp);
+        employeeRepository.delete(employee);
     }
 
 
-    // Aktifleştirme/Pasifleştirme + email bildirimi
+    // Aktifleştirme
+    @Deprecated
     public Employee setEmployeeActiveStatus(Long id, boolean active) {
-        Employee emp = employeeRepository.findById(id)
+        Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
-       // emp.setActive(active);
-        employeeRepository.save(emp);
+        // emp.setActive(active);
+        employeeRepository.save(employee);
 
-        // Email bildirimi
+        /* Email bildirimi
         String status = active ? "aktifleştirildi" : "pasifleştirildi";
         emailService.send(emp.getEmail(),
                 "Hesap Durumu Güncellendi",
                 "Sayın " + emp.getName() + ", hesabınız " + status + ".");
 
-        return emp;
+        return employee;*/
+        return employee;
     }
 
 
