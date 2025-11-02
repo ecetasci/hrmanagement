@@ -16,7 +16,6 @@ import com.ecetasci.hrmanagement.repository.EmployeeRepository;
 import com.ecetasci.hrmanagement.exceptions.ResourceNotFoundException;
 import com.ecetasci.hrmanagement.repository.UserRepository;
 import com.ecetasci.hrmanagement.utility.JwtManager;
-import jakarta.servlet.UnavailableException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -173,9 +172,7 @@ public class AssetService {
     public EmployeeAssetResponseDto rejectEmployeeAsset(Long assignmentId, RejectAssetRequestDto dto) {
         EmployeeAsset asset = employeeAssetRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Assignment not found"));
-        if(asset.getStatus().equals(CONFIRMED)){
-            throw new RuntimeException("Confirmed assets cannot be rejected!");
-        }
+        // Only ASSIGNED can be rejected. Treat CONFIRMED as not allowed as well.
         if (asset.getStatus() != EmployeeAssetStatus.ASSIGNED ) {
             throw new IllegalStateException("Only ASSIGNED assets can be rejected!");
         }

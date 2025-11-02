@@ -6,7 +6,6 @@ import com.ecetasci.hrmanagement.dto.request.ShiftRequestDto;
 import com.ecetasci.hrmanagement.dto.response.BaseResponse;
 import com.ecetasci.hrmanagement.dto.response.ShiftResponseDto;
 import com.ecetasci.hrmanagement.entity.EmployeeShift;
-import com.ecetasci.hrmanagement.mapper.ShiftMapper;
 import com.ecetasci.hrmanagement.service.EmployeeShiftService;
 import com.ecetasci.hrmanagement.service.ShiftService;
 import jakarta.validation.Valid;
@@ -16,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import static com.ecetasci.hrmanagement.constant.Endpoints.SHIFT;
+import static com.ecetasci.hrmanagement.constant.Endpoints.COMPANY_SHIFTS;
 
 /**
  * ShiftController — şirket vardiya (shift) yönetimi.
@@ -25,7 +24,7 @@ import static com.ecetasci.hrmanagement.constant.Endpoints.SHIFT;
  * - Çalışanlara vardiya atama
  */
 @RestController
-@RequestMapping(SHIFT)
+@RequestMapping(COMPANY_SHIFTS)
 @RequiredArgsConstructor
 public class ShiftController {
 
@@ -87,6 +86,8 @@ public class ShiftController {
      * @param dto Atama DTO
      * @return Atama sonucu (created id wrapped)
      */
+
+
     @PostMapping("/employees/{employeeId}/assign")
     public ResponseEntity<BaseResponse<Long>> assignShift(@PathVariable Long employeeId,
                                                                   @RequestBody @Valid EmployeeShiftAssignRequestDto dto) {

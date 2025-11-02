@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -86,13 +86,15 @@ public class DashboardService {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new RuntimeException("Personel bulunamadı."));
 
+        //
         List<EmployeeShift> shifts = employeeShiftRepository
-                .findByEmployee_IdAndStartTimeBetween(employeeId, LocalDateTime.now(), LocalDateTime.now().plusDays(7));
+                .findAllByEmployee_IdAndStartTimeBetween(employeeId, LocalTime.now(), LocalTime.now().plusHours(8));
 
         String nextShift = "Yaklaşan vardiya yok";
         if (!shifts.isEmpty()) {
             EmployeeShift s = shifts.get(0);
             nextShift = s.getShift().getName() + " (" + s.getStartTime() + ")";
+
         }
 
         List<Expense> expenses = expenseRepository.findTop3ByEmployee_IdOrderByExpenseDateDesc(employeeId);
@@ -126,11 +128,10 @@ public class DashboardService {
 
         List<CalendarShiftDto> shiftList = new ArrayList<>();
         //// Fetch shifts between start and end dates
-        LocalDateTime start1 = LocalDateTime.of(start.getYear(), start.getMonth(), start.getDayOfMonth(), 0, 0);
-        LocalDateTime end1 = start.plusMonths(1).minusDays(1).atStartOfDay();
-        List<EmployeeShift> shifts = employeeShiftRepository.findByEmployee_IdAndStartTimeBetween(employeeId, start1, end1);
+        // Use assignedDate range for calendar month view — this maps a shift to the date it was assigned
+        List<EmployeeShift> shifts = employeeShiftRepository.findByEmployee_IdAndAssignedDateBetween(employeeId, start, end);
         for (EmployeeShift s : shifts) {
-            shiftList.add(new CalendarShiftDto(s.getStartTime(), s.getShift().getName()));
+            shiftList.add(new CalendarShiftDto(s.getAssignedDate(), s.getShift().getName()));
         }
 
         return new EmployeeCalendarResponse(start.getMonth().name(), leaveList, shiftList);

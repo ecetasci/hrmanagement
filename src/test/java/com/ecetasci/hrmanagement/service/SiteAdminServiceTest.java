@@ -4,10 +4,9 @@ import com.ecetasci.hrmanagement.dto.request.SubscriptionRequestDto;
 import com.ecetasci.hrmanagement.dto.response.SubscriptionResponseDto;
 import com.ecetasci.hrmanagement.entity.Company;
 import com.ecetasci.hrmanagement.entity.CompanySubscription;
-import com.ecetasci.hrmanagement.entity.User;
-import com.ecetasci.hrmanagement.enums.Role;
+
 import com.ecetasci.hrmanagement.enums.SubscriptionType;
-import com.ecetasci.hrmanagement.enums.UserStatus;
+
 import com.ecetasci.hrmanagement.repository.CompanyRepository;
 import com.ecetasci.hrmanagement.repository.CompanySubscriptionRepository;
 import com.ecetasci.hrmanagement.repository.UserRepository;
@@ -47,57 +46,34 @@ class SiteAdminServiceTest {
         company = new Company();
         company.setId(1L);
         company.setCompanyName("ACME");
+        company.setCompanyEmail("acme@x.com");
         company.setSubscriptions(new ArrayList<>());
     }
 
-    // approveCompanyApplication
+    // approveCompanyApplication (company-based in service)
     @Test
-    void approveCompanyApplication_whenPending_setsActiveAndCompanyAdmin_andSaves() {
-        User user = new User();
-        user.setId(10L);
-        user.setUserStatus(UserStatus.PENDING_ADMIN_APPROVAL);
-        user.setRole(null);
-        when(userRepository.findById(10L)).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+    void approveCompanyApplication_whenPending_setsApprovedAndSendsEmail_andSaves() {
+        company.setCompanyStatus(null);
+        when(companyRepository.findById(1L)).thenReturn(Optional.of(company));
+        when(companyRepository.save(any(Company.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        service.approveCompanyApplication(10L);
+        service.approveCompanyApplication(1L);
 
-        assertEquals(UserStatus.ACTIVE, user.getUserStatus());
-        assertEquals(Role.COMPANY_ADMIN, user.getRole());
-        verify(userRepository).save(user);
+        assertEquals(com.ecetasci.hrmanagement.enums.CompanyStatus.APPROVED, company.getCompanyStatus());
+        verify(companyRepository).save(company);
+        verify(emailService).send(eq(company.getCompanyEmail()), contains("Approved"), anyString());
     }
 
     @Test
-    void approveCompanyApplication_whenNotPending_leavesAsIs_andSaves() {
-        User user = new User();
-        user.setId(11L);
-        user.setUserStatus(UserStatus.ACTIVE);
-        user.setRole(Role.EMPLOYEE);
-        when(userRepository.findById(11L)).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+    void rejectCompanyApplication_setsRejectedAndSendsEmail_andSaves() {
+        when(companyRepository.findById(2L)).thenReturn(Optional.of(company));
+        when(companyRepository.save(any(Company.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        service.approveCompanyApplication(11L);
+        service.rejectCompanyApplication(2L);
 
-        assertEquals(UserStatus.ACTIVE, user.getUserStatus());
-        assertEquals(Role.EMPLOYEE, user.getRole());
-        verify(userRepository).save(user);
-    }
-
-    // rejectCompanyApplication
-    @Test
-    void rejectCompanyApplication_setsRejectedAndNullRole_andSaves() {
-        User user = new User();
-        user.setId(12L);
-        user.setUserStatus(UserStatus.PENDING_ADMIN_APPROVAL);
-        user.setRole(Role.EMPLOYEE);
-        when(userRepository.findById(12L)).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        service.rejectCompanyApplication(12L);
-
-        assertEquals(UserStatus.REJECTED, user.getUserStatus());
-        assertNull(user.getRole());
-        verify(userRepository).save(user);
+        assertEquals(com.ecetasci.hrmanagement.enums.CompanyStatus.REJECTED, company.getCompanyStatus());
+        verify(companyRepository).save(company);
+        verify(emailService).send(eq(company.getCompanyEmail()), contains("Rejected"), anyString());
     }
 
     // createSubscription

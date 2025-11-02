@@ -6,5 +6,6 @@ import java.time.LocalDate;
 
 public record EmployeeShiftAssignRequestDto(
         @NotNull Long shiftId,
+      //  @NotNull Long employeeId,
         @NotNull LocalDate assignedDate
 ) {}

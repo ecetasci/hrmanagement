@@ -1,13 +1,16 @@
 package com.ecetasci.hrmanagement.dto.request;
 
-import com.ecetasci.hrmanagement.entity.Company;
 import com.ecetasci.hrmanagement.enums.Role;
 import jakarta.validation.constraints.NotBlank;
 
-public record RegisterEmployeeRequestDto(@NotBlank String name, Long companyId, @NotBlank String password,
-                                          Role role, String email, String position, String department) {
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
-    public RegisterEmployeeRequestDto(String name, Long companyId,String password,Role role, String email, String position, String department) {
+public record RegisterEmployeeRequestDto(@NotBlank String name, Long companyId, @NotBlank String password,
+                                         Role role, String email, String position, String department, LocalDate birthDate, LocalDate hiredDay, BigDecimal salary,  String phoneNumber, String address, String emergencyContact
+                                         ) {
+
+    public RegisterEmployeeRequestDto(String name, Long companyId,String password,Role role, String email, String position, String department,LocalDate birthDate, LocalDate hiredDay, BigDecimal salary,  String phoneNumber, String address, String emergencyContact) {
         if (role != Role.EMPLOYEE) {
             throw new IllegalArgumentException("Role must be EMPLOYEE for employee registration");
         }
@@ -18,5 +21,12 @@ public record RegisterEmployeeRequestDto(@NotBlank String name, Long companyId, 
         this.email = email;
         this.position = position;
         this.department = department;
+        this.birthDate= birthDate;
+        this.hiredDay = hiredDay;
+        this.salary = salary;
+        this.phoneNumber = phoneNumber;
+        this.address = address;
+        this.emergencyContact = emergencyContact;
+
     }
 }

@@ -3,8 +3,7 @@ package com.ecetasci.hrmanagement.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 
 public record ShiftRequestDto(
@@ -12,10 +11,10 @@ public record ShiftRequestDto(
         String name,
 
         @NotNull(message = "Start time is required")
-        LocalDateTime startTime,
+        LocalTime startTime,
 
         @NotNull(message = "End time is required")
-        LocalDateTime endTime,
+        LocalTime endTime,
 
         @NotNull(message = "Company ID is required")
         Long companyId

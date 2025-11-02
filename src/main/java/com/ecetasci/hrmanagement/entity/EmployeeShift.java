@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 
 @Entity
@@ -28,9 +28,10 @@ public class EmployeeShift {
     @JoinColumn(name = "shift_id", nullable = false)
     private Shift shift;
 
+    // Vardiyanın atandığı-yapılacağı tarih
     private LocalDate assignedDate;
 
-    private LocalDateTime startTime;
+     private LocalTime startTime;// Vardiya başlangıç zamanı
 
-    private LocalDateTime endTime;
+    private LocalTime endTime;// Vardiya bitiş zamanı
 }

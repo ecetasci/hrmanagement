@@ -14,13 +14,13 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.beans.Encoder;
+
 import java.io.File;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.List;
+
 
 @Component
 @RequiredArgsConstructor
@@ -32,7 +32,6 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final ExpenseRepository expenseRepository;
     private final ExpenseDocumentRepository expenseDocumentRepository;
-    private final ExpenseDocumentService expenseDocumentService;
     private final JwtManager jwtManager;
 
 
@@ -43,7 +42,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     }
 
     private void seedFirstSiteAdmin() {
-        if (userRepository.findByRole(Role.SITE_ADMIN).isEmpty()) {
+        if (userRepository.findFirstByRole(Role.SITE_ADMIN).isEmpty()) {
             User firstSiteAdmin = User.builder()
                     .name("System Admin")
                     .email("admin@hrmanagement.com")

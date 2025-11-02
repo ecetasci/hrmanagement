@@ -27,7 +27,7 @@ public class CompanyManagerService {
     private final EmployeeService employeeService;
     private final JwtManager jwtManager;
 
-    // Personel ekleme
+    // Personel ekleme işlemi, hem User hem Employee oluşturur, ilişkilendirir, ve doğrulama e-postası gönderir.
     public Employee createEmployee(RegisterEmployeeRequestDto dto) {
         // 1. Önce User oluştur
         User user = new User();
@@ -51,6 +51,12 @@ public class CompanyManagerService {
         employee.setDepartment(dto.department());
         employee.setPosition(dto.position());
         employee.setEmail(dto.email());
+        employee.setBirthDate(dto.birthDate());
+        employee.setHireDate(dto.hiredDay());
+        employee.setSalary(dto.salary());
+        employee.setPhoneNumber(dto.phoneNumber());
+        employee.setAddress(dto.address());
+        employee.setEmergencyContact(dto.emergencyContact());
         employee.setUser(savedUser); // ilişkilendirme
         Employee resp = employeeRepository.save(employee);
 

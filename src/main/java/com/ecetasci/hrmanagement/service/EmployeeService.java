@@ -42,7 +42,7 @@ public class EmployeeService {
                 ));
     }
 
-
+//Managerdan bağımsız employee oluşturma seçeneği olması için yazıldı,
     public EmployeeResponseDto createEmployee(Long companyId, EmployeeRequestDto dto) {
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Company not found"));

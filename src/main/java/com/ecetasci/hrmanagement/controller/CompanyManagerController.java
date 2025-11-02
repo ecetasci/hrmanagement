@@ -63,14 +63,13 @@ public class CompanyManagerController {
     private final UserRepository userRepository;
 
 
-    //Personel kayıt//
-
     /**
      * Yeni personel kaydı oluşturur.
      *
      * @param dto Kayıt için gerekli alanları içeren DTO
      * @return Oluşturulan personel bilgilerini içeren BaseResponse
      */
+
     @PostMapping("/employee-register")
     public ResponseEntity<BaseResponse<EmployeeResponseDto>> register(@RequestBody @Valid RegisterEmployeeRequestDto dto) {
         try {
@@ -154,7 +153,7 @@ public class CompanyManagerController {
                                                @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate leaveStartDate,
                                                @RequestParam String managerEmployeeNumber
     ) {
-         leaveService.approveLeaveRequest(employeeNumber, leaveStartDate, managerEmployeeNumber);
+        leaveService.approveLeaveRequest(employeeNumber, leaveStartDate, managerEmployeeNumber);
         return ResponseEntity.ok("Leave approved");
     }
 
@@ -177,7 +176,8 @@ public class CompanyManagerController {
 
     /**
      * Tüm zimmetleri listeler.
-     *İstek yapan kullanıcının şirketine ait zimmetleri döner.
+     * İstek yapan kullanıcının şirketine ait zimmetleri döner.
+     *
      * @return Asset DTO listesi
      */
     @GetMapping("/assets")
@@ -492,6 +492,7 @@ public class CompanyManagerController {
                 .build());
     }
 
+    @Deprecated
     @PutMapping("/employees/{id}/activate")
     public ResponseEntity<BaseResponse<EmployeeResponseDto>> activateEmployee(@PathVariable Long id, @RequestParam(
             defaultValue = "true") boolean active, HttpServletRequest request) {

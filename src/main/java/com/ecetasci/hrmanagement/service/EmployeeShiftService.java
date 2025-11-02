@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+
 import java.util.List;
 
 @Service
@@ -42,12 +43,23 @@ public class EmployeeShiftService {
         }
 
 
+        // assignedDate (tarih) ile Shift'in LocalTime tipindeki saatlerini birleştirerek
+        // EmployeeShift için LocalDateTime start/end oluşturuyoruz.
+        //LocalDateTime startDateTime = LocalDateTime.of(assignedDate, shift.getStartTime());
+       // LocalDateTime endDateTime = LocalDateTime.of(assignedDate, shift.getEndTime());
+        // Eğer vardiya gece yarısını geçiyorsa (end < start), endDateTime'ı bir sonraki güne al
+    //    if (!endDateTime.isAfter(startDateTime)) {
+        //    endDateTime = endDateTime.plusDays(1);
+     //   }
+
+
         EmployeeShift employeeShift = EmployeeShift.builder()
                 .employee(employee)
                 .shift(shift)
                 .assignedDate(assignedDate)
                 .startTime(shift.getStartTime())
                 .endTime(shift.getEndTime())
+
                 .build();
 
         return employeeShiftRepository.save(employeeShift);
@@ -66,4 +78,3 @@ public class EmployeeShiftService {
         employeeShiftRepository.deleteById(employeeShiftId);
     }
 }
-

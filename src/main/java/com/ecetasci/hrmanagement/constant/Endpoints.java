@@ -16,11 +16,10 @@ public class Endpoints {
     public static final String MANAGER = BASE + "/manager";
     public static final String COMPANY = BASE + "/company";
     public static final String DASHBOARD = BASE + "/dashboard";
-       public static final String EXPENSES = BASE + "/expenses";
+     public static final String EXPENSES = BASE + "/expenses";
     public static final String REVIEWS = BASE + "/reviews";
-    // company shifts path
     public static final String COMPANY_SHIFTS = COMPANY + "/shifts";
-    // genel shifts path (ShiftController) — eklendi
+    public static final String COMPANY_BREAKS = COMPANY + "/breaks";
     public static final String SHIFT = BASE + "/shifts";
 
 

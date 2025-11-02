@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 public interface EmployeeShiftRepository extends JpaRepository<EmployeeShift, Long> {
@@ -16,7 +16,12 @@ public interface EmployeeShiftRepository extends JpaRepository<EmployeeShift, Lo
     boolean existsByEmployeeIdAndAssignedDate(Long employeeId, LocalDate assignedDate);
 
     List<EmployeeShift> findByEmployeeId(Long employeeId);
-    List<EmployeeShift> findByEmployee_IdAndStartTimeBetween(Long employeeId, LocalDateTime start, LocalDateTime end);
+
+
+    List<EmployeeShift> findAllByEmployee_IdAndStartTimeBetween(Long employeeId, LocalTime start, LocalTime end);
+
+    // Added: fetch employee shifts where assignedDate between start and end (inclusive)
+    List<EmployeeShift> findByEmployee_IdAndAssignedDateBetween(Long employeeId, LocalDate start, LocalDate end);
 
     @Modifying
     @Query("delete from EmployeeShift es where es.shift.id = :shiftId")

@@ -82,7 +82,5 @@ public class Employee extends BaseEntity{
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
     private List<Expense> expenses;
 
-    public String getEmail() {
-        return email;
-    }
+
 }
